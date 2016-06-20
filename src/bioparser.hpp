@@ -15,7 +15,8 @@
 
 namespace BIOPARSER {
 
-constexpr uint32_t kBufferSize = 4 * 1024 * 1024; // 4kB
+constexpr uint32_t kSmallBufferSize = 4 * 1024; // 4 kB
+constexpr uint32_t kLargeBufferSize = 500 * 1024 * 1024; // 500 MB
 
 enum class FileType {
     kFASTA,
@@ -45,7 +46,7 @@ public:
 
 private:
     Reader(FILE* input_file, FileType type)
-            : input_file_(input_file, fclose), buffer_(kBufferSize, '0'),
+            : input_file_(input_file, fclose), buffer_(kSmallBufferSize, '0'),
             num_objects_read_(0), type_(type) {
     }
     Reader(const Reader&) = delete;
@@ -102,10 +103,12 @@ bool Reader<T>::read_FASTA_objects(std::vector<std::unique_ptr<T>>& dst, uint64_
     uint64_t current_bytes = 0;
     uint64_t total_bytes = 0;
 
-    std::string name, data;
-    name.reserve(kBufferSize);
-    data.reserve(kBufferSize);
+    std::string name(kSmallBufferSize, '0');
+    uint32_t name_length = 0;
     bool is_name = true;
+
+    std::string data(kLargeBufferSize, '0');
+    uint32_t data_length = 0;
 
     // unique_ptr<FILE> to FILE*
     auto input_file = input_file_.get();
@@ -113,7 +116,7 @@ bool Reader<T>::read_FASTA_objects(std::vector<std::unique_ptr<T>>& dst, uint64_
 
     while (!is_end) {
 
-        uint64_t read_bytes = fread(buffer_.data(), sizeof(char), kBufferSize, input_file);
+        uint64_t read_bytes = fread(buffer_.data(), sizeof(char), kSmallBufferSize, input_file);
         is_end = feof(input_file);
 
         total_bytes += read_bytes;
@@ -128,23 +131,25 @@ bool Reader<T>::read_FASTA_objects(std::vector<std::unique_ptr<T>>& dst, uint64_
             auto c = buffer_[i];
 
             if (!is_name && (c == '>' || (is_end && i == read_bytes - 1))) {
+                dst.emplace_back(std::unique_ptr<T>(new T(name.c_str(), name_length,
+                    data.c_str(), data_length)));
+
                 current_bytes = 0;
+                name_length = 0;
                 is_name = true;
-                dst.emplace_back(std::unique_ptr<T>(new T(name, data)));
-                name.clear();
-                data.clear();
+                data_length = 0;
             }
 
             if (is_name) {
                 if (c == '\n') {
                     is_name = false;
-                } else if (name.size() == kBufferSize) {
+                } else if (name.size() == kSmallBufferSize) {
                     continue;
                 } else if (!(name.size() == 0 && (c == '>' || isspace(c))) && c != '\r') {
-                    name.push_back(c);
+                    name[name_length++] = c;
                 }
             } else {
-                data.push_back(c);
+                data[data_length++] = c;
             }
         }
 

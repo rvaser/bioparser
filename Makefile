@@ -12,7 +12,7 @@ EXC_DIR = bin
 I_CMD = $(addprefix -I, $(SRC_DIR))
 L_CMD = $(addprefix -L, )
 
-CP_FLAGS = $(I_CMD) -g -Wall -std=c++11
+CP_FLAGS = $(I_CMD) -O3 -Wall -std=c++11
 LD_FLAGS = $(I_CMD) $(L_CMD)
 
 SRC = $(shell find $(SRC_DIR) -type f -regex ".*\.cpp")

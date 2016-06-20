@@ -7,8 +7,8 @@ using namespace BIOPARSER;
 
 class Read {
 public:
-    Read(const std::string& name, const std::string& data)
-            : name_(name), data_(data){
+    Read(const char* name, uint32_t name_length, const char* data, uint32_t data_length)
+            : name_(name, name_length), data_(data, data_length){
     }
     std::string name_;
     std::string data_;
