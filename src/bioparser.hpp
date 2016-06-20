@@ -132,12 +132,16 @@ bool Reader<T>::read_FASTA_objects(std::vector<std::unique_ptr<T>>& dst, uint64_
 
             if (!is_name && (c == '>' || (is_end && i == read_bytes - 1))) {
 
-                while (isspace(data[data_length - 1])) {
+                while (name_length > 0 && isspace(name[name_length - 1])) {
+                    --name_length;
+                }
+                while (data_length > 0 && isspace(data[data_length - 1])) {
                     --data_length;
                 }
 
                 dst.emplace_back(std::unique_ptr<T>(new T(name.c_str(), name_length,
                     data.c_str(), data_length)));
+                ++num_objects_read_;
 
                 current_bytes = 0;
                 name_length = 0;
@@ -150,7 +154,7 @@ bool Reader<T>::read_FASTA_objects(std::vector<std::unique_ptr<T>>& dst, uint64_
                     is_name = false;
                 } else if (name_length == kSmallBufferSize) {
                     continue;
-                } else if (!(name_length == 0 && (c == '>' || isspace(c))) && c != '\r') {
+                } else if (!(name_length == 0 && (c == '>' || isspace(c)))) {
                     name[name_length++] = c;
                 }
             } else {
@@ -166,7 +170,101 @@ bool Reader<T>::read_FASTA_objects(std::vector<std::unique_ptr<T>>& dst, uint64_
 
 template<class T>
 bool Reader<T>::read_FASTQ_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t max_bytes) {
-    return false;
+
+    bool status = false;
+    uint64_t current_bytes = 0;
+    uint64_t total_bytes = 0;
+
+    std::string name(kSmallBufferSize, 0);
+    uint32_t name_length = 0;
+
+    std::string data(kLargeBufferSize, 0);
+    uint32_t data_length = 0;
+
+    std::string quality(kLargeBufferSize, 0);
+    uint32_t quality_length = 0;
+
+    // unique_ptr<FILE> to FILE*
+    auto input_file = input_file_.get();
+    bool is_end = feof(input_file);
+
+    bool is_valid = false;
+    uint32_t line_number = 0;
+
+    while (!is_end) {
+
+        uint64_t read_bytes = fread(buffer_.data(), sizeof(char), kSmallBufferSize, input_file);
+        is_end = feof(input_file);
+
+        total_bytes += read_bytes;
+        if (max_bytes != 0 && total_bytes > max_bytes) {
+            fseek(input_file, -(current_bytes + read_bytes), SEEK_CUR);
+            status = true;
+            break;
+        }
+
+        uint32_t i = 0;
+        for (; i < read_bytes; ++i) {
+            auto c = buffer_[i];
+
+            if (c == '\n') {
+                line_number = (line_number + 1) % 4;
+                if (line_number == 0) {
+                    is_valid = true;
+                }
+            } else {
+                switch (line_number) {
+                    case 0:
+                        if (name_length < kSmallBufferSize) {
+                            if (!(name_length == 0 && (c == '@' || isspace(c)))) {
+                                name[name_length++] = c;
+                            }
+                        }
+                        break;
+                    case 1:
+                        data[data_length++] = c;
+                        break;
+                    case 2:
+                        // comment line starting with '+'
+                        // do nothing
+                        break;
+                    case 3:
+                        quality[quality_length++] = c;
+                        break;
+                    default:
+                        // never reaches this case
+                        break;
+                }
+            }
+
+            if (is_valid) {
+
+                while (name_length > 0 && isspace(name[name_length - 1])) {
+                    --name_length;
+                }
+                while (data_length > 0 && isspace(data[data_length - 1])) {
+                    --data_length;
+                }
+                while (quality_length > 0 && isspace(quality[quality_length - 1])) {
+                    --quality_length;
+                }
+
+                dst.emplace_back(std::unique_ptr<T>(new T(name.c_str(), name_length,
+                    data.c_str(), data_length, quality.c_str(), quality_length)));
+                ++num_objects_read_;
+
+                current_bytes = 0;
+                name_length = 0;
+                data_length = 0;
+                quality_length = 0;
+                is_valid = false;
+            }
+        }
+
+        current_bytes += i;
+    }
+
+    return status;
 }
 
 template<class T>
