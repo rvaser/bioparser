@@ -46,7 +46,7 @@ public:
 
 private:
     Reader(FILE* input_file, FileType type)
-            : input_file_(input_file, fclose), buffer_(kSmallBufferSize, '0'),
+            : input_file_(input_file, fclose), buffer_(kSmallBufferSize, 0),
             num_objects_read_(0), type_(type) {
     }
     Reader(const Reader&) = delete;
@@ -103,11 +103,11 @@ bool Reader<T>::read_FASTA_objects(std::vector<std::unique_ptr<T>>& dst, uint64_
     uint64_t current_bytes = 0;
     uint64_t total_bytes = 0;
 
-    std::string name(kSmallBufferSize, '0');
+    std::string name(kSmallBufferSize, 0);
     uint32_t name_length = 0;
     bool is_name = true;
 
-    std::string data(kLargeBufferSize, '0');
+    std::string data(kLargeBufferSize, 0);
     uint32_t data_length = 0;
 
     // unique_ptr<FILE> to FILE*
@@ -131,6 +131,11 @@ bool Reader<T>::read_FASTA_objects(std::vector<std::unique_ptr<T>>& dst, uint64_
             auto c = buffer_[i];
 
             if (!is_name && (c == '>' || (is_end && i == read_bytes - 1))) {
+
+                while (isspace(data[data_length - 1])) {
+                    --data_length;
+                }
+
                 dst.emplace_back(std::unique_ptr<T>(new T(name.c_str(), name_length,
                     data.c_str(), data_length)));
 
@@ -143,9 +148,9 @@ bool Reader<T>::read_FASTA_objects(std::vector<std::unique_ptr<T>>& dst, uint64_
             if (is_name) {
                 if (c == '\n') {
                     is_name = false;
-                } else if (name.size() == kSmallBufferSize) {
+                } else if (name_length == kSmallBufferSize) {
                     continue;
-                } else if (!(name.size() == 0 && (c == '>' || isspace(c))) && c != '\r') {
+                } else if (!(name_length == 0 && (c == '>' || isspace(c))) && c != '\r') {
                     name[name_length++] = c;
                 }
             } else {
