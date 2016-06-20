@@ -21,10 +21,5 @@ int main(int argc, char** argv) {
     std::vector<std::unique_ptr<Read>> test;
     reader->read_objects(test, 10000000000000);
 
-    for (const auto& it: test) {
-        printf(">%s\r\n", it->name_.c_str());
-        printf("%s\r\n", it->data_.c_str());
-    }
-
     return 0;
 }
