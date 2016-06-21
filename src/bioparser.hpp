@@ -139,8 +139,8 @@ bool Reader<T>::read_FASTA_objects(std::vector<std::unique_ptr<T>>& dst, uint64_
                     --data_length;
                 }
 
-                dst.emplace_back(std::unique_ptr<T>(new T(name.c_str(), name_length,
-                    data.c_str(), data_length)));
+                dst.emplace_back(std::unique_ptr<T>(new T(num_objects_read_,
+                    name.c_str(), name_length, data.c_str(), data_length)));
                 ++num_objects_read_;
 
                 current_bytes = 0;
@@ -249,8 +249,9 @@ bool Reader<T>::read_FASTQ_objects(std::vector<std::unique_ptr<T>>& dst, uint64_
                     --quality_length;
                 }
 
-                dst.emplace_back(std::unique_ptr<T>(new T(name.c_str(), name_length,
-                    data.c_str(), data_length, quality.c_str(), quality_length)));
+                dst.emplace_back(std::unique_ptr<T>(new T(num_objects_read_,
+                    name.c_str(), name_length, data.c_str(), data_length,
+                    quality.c_str(), quality_length)));
                 ++num_objects_read_;
 
                 current_bytes = 0;
