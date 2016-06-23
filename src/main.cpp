@@ -36,7 +36,7 @@ public:
             a_rc_(a_rc), a_start_(a_start), a_end_(a_end), a_length_(a_length),
             b_rc_(b_rc), b_start_(b_start), b_end_(b_end), b_length_(b_length) {
     }
-    Overlap(uint32_t id, const std::vector<double>& values) :
+    Overlap(uint32_t id, const double* values, uint32_t values_length) :
             id_(id), a_id_(values[0]), b_id_(values[1]), error_(values[2]), minmers_(values[3]),
             a_rc_(values[4]), a_start_(values[5]), a_end_(values[6]), a_length_(values[7]),
             b_rc_(values[8]), b_start_(values[9]), b_end_(values[10]), b_length_(values[11]) {
