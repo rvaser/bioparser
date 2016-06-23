@@ -62,7 +62,7 @@ template<class T>
 std::unique_ptr<Reader<T>> createMhapReader(const std::string& path);
 
 // taken (and modified a bit) from http://www.leapsecond.com/tools/fast_atof.c
-double fast_atof(const char* p);
+static double fast_atof(const char* p);
 
 /*!
  * @brief Writer class
@@ -401,7 +401,7 @@ std::unique_ptr<Reader<T>> createMhapReader(const std::string& path) {
     return std::unique_ptr<Reader<T>>(new MhapReader<T>(input_file));
 }
 
-double fast_atof(const char* p) {
+static double fast_atof(const char* p) {
     int frac;
     double sign, value, scale;
 
