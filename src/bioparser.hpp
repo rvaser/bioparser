@@ -28,8 +28,8 @@ public:
     virtual bool read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t max_bytes) = 0;
 
 protected:
-    Reader(FILE* input_file)
-            : input_file_(input_file, fclose), buffer_(kSmallBufferSize, 0),
+    Reader(FILE* input_file) :
+            input_file_(input_file, fclose), buffer_(kSmallBufferSize, 0),
             num_objects_read_(0) {
     }
     Reader(const Reader&) = delete;
@@ -79,8 +79,8 @@ public:
     friend std::unique_ptr<Reader<T>> createFastaReader<T>(const std::string& path);
 
 protected:
-    FastaReader(FILE* input_file)
-        : Reader<T>(input_file) {
+    FastaReader(FILE* input_file) :
+        Reader<T>(input_file) {
     }
     FastaReader(const FastaReader&) = delete;
     const FastaReader& operator=(const FastaReader&) = delete;
@@ -177,8 +177,8 @@ public:
     friend std::unique_ptr<Reader<T>> createFastqReader<T>(const std::string& path);
 
 protected:
-    FastqReader(FILE* input_file)
-        : Reader<T>(input_file) {
+    FastqReader(FILE* input_file) :
+        Reader<T>(input_file) {
     }
     FastqReader(const FastqReader&) = delete;
     const FastqReader& operator=(const FastqReader&) = delete;
@@ -303,8 +303,8 @@ public:
     friend std::unique_ptr<Reader<T>> createMhapReader<T>(const std::string& path);
 
 protected:
-    MhapReader(FILE* input_file)
-        : Reader<T>(input_file) {
+    MhapReader(FILE* input_file) :
+        Reader<T>(input_file) {
     }
     MhapReader(const MhapReader&) = delete;
     const MhapReader& operator=(const MhapReader&) = delete;
