@@ -26,6 +26,7 @@ class Reader {
 public:
     ~Reader() {}
     virtual bool read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t max_bytes) = 0;
+    bool read_objects(std::vector<std::shared_ptr<T>>& dst, uint64_t max_bytes);
 
 protected:
     Reader(FILE* input_file) :
@@ -71,6 +72,18 @@ class Writer {
 };
 
 // Implementation of all defined (Reader/Writer) methods above
+template<class T>
+bool Reader<T>::read_objects(std::vector<std::shared_ptr<T>>& dst, uint64_t max_bytes) {
+
+    std::vector<std::unique_ptr<T>> tmp;
+    auto ret = read_objects(tmp, max_bytes);
+
+    for (auto& it: tmp) {
+        dst.push_back(std::move(it));
+    }
+    return ret;
+}
+
 template<class T>
 class FastaReader: public Reader<T> {
 public:
@@ -371,14 +384,6 @@ bool MhapReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t 
                 dst.emplace_back(std::unique_ptr<T>(new T(this->num_objects_read_,
                     (const double*) values.data(), values_length)));
 
-                /*dst.emplace_back(std::unique_ptr<T>(new T(this->num_objects_read_,
-                    (uint32_t) values[0], (uint32_t) values[1], // A id, B id
-                               values[2], (uint32_t) values[3], // % error, # shared min-mers
-                    (uint32_t) values[4], (uint32_t) values[5], // A fwd/rc, A start
-                    (uint32_t) values[6], (uint32_t) values[7], // A end, A length
-                    (uint32_t) values[8], (uint32_t) values[9], // B fwd/rc, B start
-                    (uint32_t) values[10], (uint32_t) values[11]))); // B end, B length
-*/
                 this->num_objects_read_ += 1;
                 values_length = 0;
             } else {
