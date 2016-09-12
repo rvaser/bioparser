@@ -65,13 +65,7 @@ std::unique_ptr<Reader<T>> createMhapReader(const std::string& path);
 // taken (and modified a bit) from http://www.leapsecond.com/tools/fast_atof.c
 static double fast_atof(const char* p);
 
-/*!
- * @brief Writer class
- */
-class Writer {
-};
-
-// Implementation of all defined (Reader/Writer) methods above
+// Implementation of all defined methods above
 template<class T>
 bool Reader<T>::read_objects(std::vector<std::shared_ptr<T>>& dst, uint64_t max_bytes) {
 
@@ -370,9 +364,9 @@ bool MhapReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t 
                     --line_length;
                 }
 
-                int32_t start = -1, end = 0;
+                size_t start = 0, end = 0;
                 while (true) {
-                    end = line.find(values_length == kMhapObjectLength - 1 ? '\0' : ' ', start + 1);
+                    end = line.find(values_length == kMhapObjectLength - 1 ? '\0' : ' ', start);
                     if (end == std::string::npos) {
                         break;
                     }
@@ -380,45 +374,45 @@ bool MhapReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t 
 
                     switch (values_length) {
                         case 0:
-                            a_id = atoi(&line[start + 1]);
+                            a_id = atoi(&line[start]);
                             break;
                         case 1:
-                            b_id = atoi(&line[start + 1]);
+                            b_id = atoi(&line[start]);
                             break;
                         case 2:
-                            error = fast_atof(&line[start + 1]);
+                            error = fast_atof(&line[start]);
                             break;
                         case 3:
-                            minmers = atoi(&line[start + 1]);
+                            minmers = atoi(&line[start]);
                             break;
                         case 4:
-                            a_rc = atoi(&line[start + 1]);
+                            a_rc = atoi(&line[start]);
                             break;
                         case 5:
-                            a_begin = atoi(&line[start + 1]);
+                            a_begin = atoi(&line[start]);
                             break;
                         case 6:
-                            a_end = atoi(&line[start + 1]);
+                            a_end = atoi(&line[start]);
                             break;
                         case 7:
-                            a_length = atoi(&line[start + 1]);
+                            a_length = atoi(&line[start]);
                             break;
                         case 8:
-                            b_rc = atoi(&line[start + 1]);
+                            b_rc = atoi(&line[start]);
                             break;
                         case 9:
-                            b_begin = atoi(&line[start + 1]);
+                            b_begin = atoi(&line[start]);
                             break;
                         case 10:
-                            b_end = atoi(&line[start + 1]);
+                            b_end = atoi(&line[start]);
                             break;
                         case 11:
                         default:
-                            b_length = atoi(&line[start + 1]);
+                            b_length = atoi(&line[start]);
                             break;
                     }
                     values_length++;
-                    start = end;
+                    start = end + 1;
                 }
                 line_length = 0;
                 assert(values_length == kMhapObjectLength && "Invalid format");
