@@ -1,6 +1,6 @@
 # bioparser
 
-Bioparser is a c++ implementation of a parser for bioinformatic formats. It consists of only one header file containing template parsers for FASTA, FASTQ and MHAP formats. Hopefully more formats will be added in the future.
+Bioparser is a c++ implementation of parsers for several bioinformatic formats. It consists of only one header file containing template parsers for FASTA, FASTQ and MHAP formats. Hopefully more formats will be added in the future.
 
 ## Dependencies
 
@@ -12,11 +12,12 @@ Application uses following software:
 
 ## Usage
 
-If you would like to add bioparser to your project, include the bioparser.hpp file while compiling and add -std=c++11 to your compiler flag list. All parser return a vector containing std::unique_ptr<YourClass>. For more details please look at the examples bellow:
+If you would like to add bioparser to your project, include the bioparser.hpp file while compiling and add -std=c++11 to your compiler flag list. For details on how to use the parsers, please look at the examples bellow:
 
     // user defined class for sequences in FASTA format
     class ExampleClass {
         public:
+            // required signature for the constructor
             ExampleClass(uint32_t object_id, const char* name, uint32_t name_length,
                 const char* data, uint32_t data_length) {
                 ...
@@ -31,6 +32,7 @@ If you would like to add bioparser to your project, include the bioparser.hpp fi
     // user defined class for sequences in FASTQ format
     class ExampleClass2 {
         public:
+            // required signature for the constructor
             ExampleClass2(uint32_t object_id, const char* name, uint32_t name_length,
                 const char* data, uint32_t data_length, const char* quality,
                 uint32_t quality_length) {
@@ -46,12 +48,13 @@ If you would like to add bioparser to your project, include the bioparser.hpp fi
 
     // user defined class for overlaps in MHAP format
     class ExampleClass3 {
-        ExampleClass3(uint32_t object_id, uint32_t a_id, uint32_t b_id,
-            double eq_bases_perc, uint32_t minmers,
-            uint32_t a_rc, uint32_t a_begin, uint32_t a_end, uint32_t a_length,
-            uint32_t b_rc, uint32_t b_begin, uint32_t b_end, uint32_t b_length) {
-            ...
-        }
+        public:
+            // required signature for the constructor
+            ExampleClass3(uint32_t object_id, uint32_t a_id, uint32_t b_id, double eq_bases_perc, uint32_t minmers,
+                uint32_t a_rc, uint32_t a_begin, uint32_t a_end, uint32_t a_length,
+                uint32_t b_rc, uint32_t b_begin, uint32_t b_end, uint32_t b_length) {
+                ...
+            }
     };
 
     std::vector<std::unique_ptr<ExampleClass3>> mhap_objects;
@@ -59,7 +62,7 @@ If you would like to add bioparser to your project, include the bioparser.hpp fi
     // read a predefined size of bytes (size_in_bytes) or whole file (-1)
     mhap_reader->read_objects(mhap_objects, size_in_bytes);
 
-If your class has a private constructor with the required signature, add the following lines to your classes:
+If your class has a **private** constructor with the required signature, format your classes in the following way:
 
     class ExampleClass {
         public:
