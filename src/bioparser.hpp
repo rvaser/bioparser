@@ -133,9 +133,6 @@ bool FastaReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t
                 while (name_length > 0 && isspace(name[name_length - 1])) {
                     --name_length;
                 }
-                while (data_length > 0 && isspace(data[data_length - 1])) {
-                    --data_length;
-                }
 
                 dst.emplace_back(std::unique_ptr<T>(new T(this->num_objects_read_,
                     name.c_str(), name_length, data.c_str(), data_length)));
@@ -157,7 +154,9 @@ bool FastaReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t
                     name[name_length++] = c;
                 }
             } else {
-                data[data_length++] = c;
+                if (!isspace(c)) {
+                    data[data_length++] = c;
+                }
             }
         }
 
