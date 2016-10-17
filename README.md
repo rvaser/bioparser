@@ -25,7 +25,7 @@ If you would like to add bioparser to your project, include the bioparser.hpp fi
     };
 
     std::vector<std::unique_ptr<ExampleClass>> fasta_objects;
-    auto fasta_reader = BIOPARSER::createReader<ExampleClass, FastaReader>(path_to_file);
+    auto fasta_reader = BIOPARSER::createReader<ExampleClass, BIOPARSER::FastaReader>(path_to_file);
     // read a predefined size of bytes (size_in_bytes) or whole file (-1)
     fasta_reader->read_objects(fasta_objects, size_in_bytes);
 
@@ -42,7 +42,7 @@ If you would like to add bioparser to your project, include the bioparser.hpp fi
     };
 
     std::vector<std::unique_ptr<ExampleClass2>> fastq_objects;
-    auto fastq_reader = BIOPARSER::createReader<ExampleClass2, FastqReader>(path_to_file2);
+    auto fastq_reader = BIOPARSER::createReader<ExampleClass2, BIOPARSER::FastqReader>(path_to_file2);
     // read a predefined size of bytes (size_in_bytes) or whole file (-1)
     fastq_reader->read_objects(fastq_objects, size_in_bytes);
 
@@ -59,7 +59,7 @@ If you would like to add bioparser to your project, include the bioparser.hpp fi
     };
 
     std::vector<std::unique_ptr<ExampleClass3>> mhap_objects;
-    auto mhap_reader = BIOPARSER::createReader<ExampleClass3, MhapReader>(path_to_file3);
+    auto mhap_reader = BIOPARSER::createReader<ExampleClass3, BIOPARSER::MhapReader>(path_to_file3);
     // read a predefined size of bytes (size_in_bytes) or whole file (-1)
     mhap_reader->read_objects(mhap_objects, size_in_bytes);
 
@@ -76,7 +76,7 @@ If you would like to add bioparser to your project, include the bioparser.hpp fi
     ...
 
     std::vector<std::unique_ptr<ExampleClass3>> paf_objects;
-    auto phap_reader = BIOPARSER::createReader<ExampleClass3, PafReader>(path_to_file4);
+    auto phap_reader = BIOPARSER::createReader<ExampleClass3, BIOPARSER::PafReader>(path_to_file4);
     // read a predefined size of bytes (size_in_bytes) or whole file (-1)
     paf_reader->read_objects(paf_objects, size_in_bytes);
 
