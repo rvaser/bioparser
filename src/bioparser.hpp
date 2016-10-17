@@ -22,6 +22,31 @@ constexpr uint32_t kLargeBufferSize = 500 * 1024 * 1024; // 500 MB
  * @brief Reader class
  */
 template<class T>
+class Reader;
+
+template<class T, template<class T> class U>
+std::unique_ptr<Reader<T>> createReader(const std::string& path);
+
+/*!
+ * @brief Reader class specializations
+ */
+template<class T>
+class FastaReader; // inherits Reader
+
+template<class T>
+class FastqReader; // inherits Reader
+
+template<class T>
+class MhapReader; // inherits Reader
+
+template<class T>
+class PafReader; // inherits Reader
+
+// taken (and modified a bit) from http://www.leapsecond.com/tools/fast_atof.c
+static double fast_atof(const char* p);
+
+// Implementation of all defined classes and methods above
+template<class T>
 class Reader {
     public:
         ~Reader() {}
@@ -41,31 +66,6 @@ class Reader {
         uint32_t num_objects_read_;
 };
 
-/*!
- * @brief Reader class specializations
- */
-template<class T>
-class FastaReader; // inherits Reader
-
-template<class T>
-std::unique_ptr<Reader<T>> createFastaReader(const std::string& path);
-
-template<class T>
-class FastqReader; // inherits Reader
-
-template<class T>
-std::unique_ptr<Reader<T>> createFastqReader(const std::string& path);
-
-template<class T>
-class MhapReader; // inherits Reader
-
-template<class T>
-std::unique_ptr<Reader<T>> createMhapReader(const std::string& path);
-
-// taken (and modified a bit) from http://www.leapsecond.com/tools/fast_atof.c
-static double fast_atof(const char* p);
-
-// Implementation of all defined methods above
 template<class T>
 bool Reader<T>::read_objects(std::vector<std::shared_ptr<T>>& dst, uint64_t max_bytes) {
 
@@ -78,12 +78,21 @@ bool Reader<T>::read_objects(std::vector<std::shared_ptr<T>>& dst, uint64_t max_
     return ret;
 }
 
+template<class T, template<class T> class U>
+std::unique_ptr<Reader<T>> createReader(const std::string& path) {
+
+    auto input_file = fopen(path.c_str(), "r");
+    assert(input_file != nullptr && "Unable to open file");
+
+    return std::unique_ptr<Reader<T>>(new U<T>(input_file));
+}
+
 template<class T>
 class FastaReader: public Reader<T> {
     public:
         ~FastaReader() {}
         bool read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t max_bytes);
-        friend std::unique_ptr<Reader<T>> createFastaReader<T>(const std::string& path);
+        friend std::unique_ptr<Reader<T>> createReader<T, FastaReader>(const std::string& path);
 
     private:
         FastaReader(FILE* input_file)
@@ -138,8 +147,8 @@ bool FastaReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t
                     name.c_str(), name_length, data.c_str(), data_length)));
 
                 this->num_objects_read_ += 1;
-
                 current_bytes = 0;
+
                 name_length = 0;
                 is_name = true;
                 data_length = 0;
@@ -167,20 +176,11 @@ bool FastaReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t
 }
 
 template<class T>
-std::unique_ptr<Reader<T>> createFastaReader(const std::string& path) {
-
-    auto input_file = fopen(path.c_str(), "r");
-    assert(input_file != nullptr && "Unable to open file");
-
-    return std::unique_ptr<Reader<T>>(new FastaReader<T>(input_file));
-}
-
-template<class T>
 class FastqReader: public Reader<T> {
     public:
         ~FastqReader() {}
         bool read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t max_bytes);
-        friend std::unique_ptr<Reader<T>> createFastqReader<T>(const std::string& path);
+        friend std::unique_ptr<Reader<T>> createReader<T, FastqReader>(const std::string& path);
 
     private:
         FastqReader(FILE* input_file)
@@ -277,8 +277,8 @@ bool FastqReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t
                     quality.c_str(), quality_length)));
 
                 this->num_objects_read_ += 1;
-
                 current_bytes = 0;
+
                 name_length = 0;
                 data_length = 0;
                 quality_length = 0;
@@ -293,20 +293,11 @@ bool FastqReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t
 }
 
 template<class T>
-std::unique_ptr<Reader<T>> createFastqReader(const std::string& path) {
-
-    auto input_file = fopen(path.c_str(), "r");
-    assert(input_file != nullptr && "Unable to open file");
-
-    return std::unique_ptr<Reader<T>>(new FastqReader<T>(input_file));
-}
-
-template<class T>
 class MhapReader: public Reader<T> {
     public:
         ~MhapReader() {}
         bool read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t max_bytes);
-        friend std::unique_ptr<Reader<T>> createMhapReader<T>(const std::string& path);
+        friend std::unique_ptr<Reader<T>> createReader<T, MhapReader>(const std::string& path);
 
     private:
         MhapReader(FILE* input_file)
@@ -421,6 +412,8 @@ bool MhapReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t 
                     b_rc, b_begin, b_end, b_length)));
 
                 this->num_objects_read_ += 1;
+                current_bytes = 0;
+
                 values_length = 0;
             } else {
                 line[line_length++] = c;
@@ -434,12 +427,150 @@ bool MhapReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t 
 }
 
 template<class T>
-std::unique_ptr<Reader<T>> createMhapReader(const std::string& path) {
+class PafReader: public Reader<T> {
+    public:
+        ~PafReader() {}
+        bool read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t max_bytes);
+        friend std::unique_ptr<Reader<T>> createReader<T, PafReader>(const std::string& path);
 
-    auto input_file = fopen(path.c_str(), "r");
-    assert(input_file != nullptr && "Unable to open file");
+    private:
+        PafReader(FILE* input_file)
+                : Reader<T>(input_file) {
+        }
+        PafReader(const PafReader&) = delete;
+        const PafReader& operator=(const PafReader&) = delete;
+};
 
-    return std::unique_ptr<Reader<T>>(new MhapReader<T>(input_file));
+template<class T>
+bool PafReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t max_bytes) {
+
+    bool status = false;
+    uint64_t current_bytes = 0;
+    uint64_t total_bytes = 0;
+
+    std::string line(kSmallBufferSize, 0);
+    uint32_t line_length = 0;
+
+    const uint32_t kPafObjectLength = 12;
+    uint32_t values_length = 0;
+
+    // unique_ptr<FILE> to FILE*
+    auto input_file = this->input_file_.get();
+    bool is_end = feof(input_file);
+
+    const char* a_name = nullptr;
+    uint32_t a_name_length = 0;
+    const char* b_name = nullptr;
+    uint32_t b_name_length = 0;
+
+    uint32_t a_length = 0, a_begin = 0, a_end = 0, b_length = 0, b_begin = 0,
+        b_end = 0, matching_bases = 0, overlap_length = 0, quality = 0;
+    char orientation = '\0';
+
+    while (!is_end) {
+
+        uint64_t read_bytes = fread(this->buffer_.data(), sizeof(char),
+            kSmallBufferSize, input_file);
+        is_end = feof(input_file);
+
+        total_bytes += read_bytes;
+        if (max_bytes != 0 && total_bytes > max_bytes) {
+            fseek(input_file, -(current_bytes + read_bytes), SEEK_CUR);
+            status = true;
+            break;
+        }
+
+        uint32_t i = 0;
+        for (; i < read_bytes; ++i) {
+
+            auto c = this->buffer_[i];
+
+            if (c == '\n') {
+
+                line[line_length] = 0;
+                while (line_length > 0 && isspace(line[line_length - 1])) {
+                    line[line_length - 1] = 0;
+                    --line_length;
+                }
+
+                size_t start = 0, end = 0;
+                while (true) {
+                    end = line.find(values_length == kPafObjectLength - 1 ? '\0' : '\t', start);
+                    if (end == std::string::npos) {
+                        break;
+                    }
+                    line[end] = 0;
+
+                    switch (values_length) {
+                        case 0:
+                            a_name = &line[start];
+                            a_name_length = end - start;
+                            break;
+                        case 1:
+                            a_length = atoi(&line[start]);
+                            break;
+                        case 2:
+                            a_begin = atoi(&line[start]);
+                            break;
+                        case 3:
+                            a_end = atoi(&line[start]);
+                            break;
+                        case 4:
+                            orientation = line[start];
+                            break;
+                        case 5:
+                            b_name = &line[start];
+                            b_name_length = end - start;
+                            break;
+                        case 6:
+                            b_length = atoi(&line[start]);
+                            break;
+                        case 7:
+                            b_begin = atoi(&line[start]);
+                            break;
+                        case 8:
+                            b_end = atoi(&line[start]);
+                            break;
+                        case 9:
+                            matching_bases = atoi(&line[start]);
+                            break;
+                        case 10:
+                            overlap_length = atoi(&line[start]);
+                            break;
+                        case 11:
+                        default:
+                            quality = atoi(&line[start]);
+                            break;
+                    }
+                    values_length++;
+                    if (values_length == kPafObjectLength) {
+                        break;
+                    }
+                    start = end + 1;
+                }
+                line_length = 0;
+                assert(values_length == kPafObjectLength && "Invalid format");
+
+                dst.emplace_back(std::unique_ptr<T>(new T(this->num_objects_read_,
+                    a_name, a_name_length, a_length, a_begin, a_end, orientation,
+                    b_name, b_name_length, b_length, b_begin, b_end,
+                    matching_bases, overlap_length, quality)));
+
+                this->num_objects_read_ += 1;
+                current_bytes = 0;
+
+                values_length = 0;
+                a_name_length = 0;
+                b_name_length = 0;
+            } else {
+                line[line_length++] = c;
+            }
+        }
+
+        current_bytes += i;
+    }
+
+    return status;
 }
 
 static double fast_atof(const char* p) {
