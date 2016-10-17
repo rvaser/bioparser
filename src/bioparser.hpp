@@ -16,6 +16,7 @@
 namespace BIOPARSER {
 
 constexpr uint32_t kSmallBufferSize = 4 * 1024; // 4 kB
+constexpr uint32_t kMediumBufferSize = 5 * 1024 * 1024; // 5 MB
 constexpr uint32_t kLargeBufferSize = 500 * 1024 * 1024; // 500 MB
 
 /*!
@@ -49,7 +50,7 @@ static double fast_atof(const char* p);
 template<class T>
 class Reader {
     public:
-        ~Reader() {}
+        virtual ~Reader() {}
         virtual bool read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t max_bytes) = 0;
         bool read_objects(std::vector<std::shared_ptr<T>>& dst, uint64_t max_bytes);
 
@@ -96,10 +97,12 @@ class FastaReader: public Reader<T> {
 
     private:
         FastaReader(FILE* input_file)
-                : Reader<T>(input_file) {
+                : Reader<T>(input_file), large_buffer_(kMediumBufferSize, 0) {
         }
         FastaReader(const FastaReader&) = delete;
         const FastaReader& operator=(const FastaReader&) = delete;
+
+        std::vector<char> large_buffer_;
 };
 
 template<class T>
@@ -113,7 +116,7 @@ bool FastaReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t
     uint32_t name_length = 0;
     bool is_name = true;
 
-    std::string data(kLargeBufferSize, 0);
+    char* data = &this->large_buffer_[0];
     uint32_t data_length = 0;
 
     // unique_ptr<FILE> to FILE*
@@ -133,8 +136,7 @@ bool FastaReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t
             break;
         }
 
-        uint32_t i = 0;
-        for (; i < read_bytes; ++i) {
+        for (uint32_t i = 0; i < read_bytes; ++i) {
             auto c = this->buffer_[i];
 
             if (!is_name && (c == '>' || (is_end && i == read_bytes - 1))) {
@@ -144,7 +146,7 @@ bool FastaReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t
                 }
 
                 dst.emplace_back(std::unique_ptr<T>(new T(this->num_objects_read_,
-                    name.c_str(), name_length, data.c_str(), data_length)));
+                    name.c_str(), name_length, (const char*) data, data_length)));
 
                 this->num_objects_read_ += 1;
                 current_bytes = 0;
@@ -165,11 +167,15 @@ bool FastaReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t
             } else {
                 if (!isspace(c)) {
                     data[data_length++] = c;
+                    if (data_length >= this->large_buffer_.size()) {
+                        this->large_buffer_.resize(kLargeBufferSize, 0);
+                        data = &this->large_buffer_[0];
+                    }
                 }
             }
-        }
 
-        current_bytes += i;
+            ++current_bytes;
+        }
     }
 
     return status;
@@ -184,10 +190,14 @@ class FastqReader: public Reader<T> {
 
     private:
         FastqReader(FILE* input_file)
-                : Reader<T>(input_file) {
+                : Reader<T>(input_file), large_buffer_1_(kMediumBufferSize, 0),
+                large_buffer_2_(kMediumBufferSize, 0) {
         }
         FastqReader(const FastqReader&) = delete;
         const FastqReader& operator=(const FastqReader&) = delete;
+
+        std::vector<char> large_buffer_1_;
+        std::vector<char> large_buffer_2_;
 };
 
 template<class T>
@@ -200,10 +210,10 @@ bool FastqReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t
     std::string name(kSmallBufferSize, 0);
     uint32_t name_length = 0;
 
-    std::string data(kLargeBufferSize, 0);
+    char* data = &this->large_buffer_1_[0];
     uint32_t data_length = 0;
 
-    std::string quality(kLargeBufferSize, 0);
+    char* quality = &this->large_buffer_2_[0];
     uint32_t quality_length = 0;
 
     // unique_ptr<FILE> to FILE*
@@ -226,8 +236,7 @@ bool FastqReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t
             break;
         }
 
-        uint32_t i = 0;
-        for (; i < read_bytes; ++i) {
+        for (uint32_t i = 0; i < read_bytes; ++i) {
             auto c = this->buffer_[i];
 
             if (c == '\n') {
@@ -246,6 +255,12 @@ bool FastqReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t
                         break;
                     case 1:
                         data[data_length++] = c;
+                        if (data_length >= this->large_buffer_1_.size()) {
+                            this->large_buffer_1_.resize(kLargeBufferSize, 0);
+                            data = &this->large_buffer_1_[0];
+                            this->large_buffer_2_.resize(kLargeBufferSize, 0);
+                            quality = &this->large_buffer_2_[0];
+                        }
                         break;
                     case 2:
                         // comment line starting with '+'
@@ -260,6 +275,8 @@ bool FastqReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t
                 }
             }
 
+            ++current_bytes;
+
             if (is_valid) {
 
                 while (name_length > 0 && isspace(name[name_length - 1])) {
@@ -273,8 +290,8 @@ bool FastqReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t
                 }
 
                 dst.emplace_back(std::unique_ptr<T>(new T(this->num_objects_read_,
-                    name.c_str(), name_length, data.c_str(), data_length,
-                    quality.c_str(), quality_length)));
+                    name.c_str(), name_length, (const char*) data, data_length,
+                    (const char*) quality, quality_length)));
 
                 this->num_objects_read_ += 1;
                 current_bytes = 0;
@@ -285,8 +302,6 @@ bool FastqReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t
                 is_valid = false;
             }
         }
-
-        current_bytes += i;
     }
 
     return status;
@@ -345,6 +360,7 @@ bool MhapReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t 
         for (; i < read_bytes; ++i) {
 
             auto c = this->buffer_[i];
+            ++current_bytes;
 
             if (c == '\n') {
 
@@ -419,8 +435,6 @@ bool MhapReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t 
                 line[line_length++] = c;
             }
         }
-
-        current_bytes += i;
     }
 
     return status;
@@ -484,6 +498,7 @@ bool PafReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t m
         for (; i < read_bytes; ++i) {
 
             auto c = this->buffer_[i];
+            ++current_bytes;
 
             if (c == '\n') {
 
@@ -566,8 +581,6 @@ bool PafReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t m
                 line[line_length++] = c;
             }
         }
-
-        current_bytes += i;
     }
 
     return status;

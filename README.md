@@ -1,6 +1,6 @@
 # bioparser
 
-Bioparser is a c++ implementation of parsers for several bioinformatic formats. It consists of only one header file containing template parsers for FASTA, FASTQ and MHAP formats. Hopefully more formats will be added in the future.
+Bioparser is a c++ implementation of parsers for several bioinformatic formats. It consists of only one header file containing template parsers for FASTA, FASTQ, MHAP and PAF formats. Hopefully more formats will be added in the future.
 
 ## Dependencies
 
@@ -26,8 +26,8 @@ If you would like to add bioparser to your project, include the bioparser.hpp fi
 
     std::vector<std::unique_ptr<ExampleClass>> fasta_objects;
     auto fasta_reader = BIOPARSER::createReader<ExampleClass, BIOPARSER::FastaReader>(path_to_file);
-    // read a predefined size of bytes (size_in_bytes) or whole file (-1)
-    fasta_reader->read_objects(fasta_objects, size_in_bytes);
+    // read the whole file
+    fasta_reader->read_objects(fasta_objects, -1);
 
 
     // define a class for sequences in FASTQ format
@@ -43,8 +43,14 @@ If you would like to add bioparser to your project, include the bioparser.hpp fi
 
     std::vector<std::unique_ptr<ExampleClass2>> fastq_objects;
     auto fastq_reader = BIOPARSER::createReader<ExampleClass2, BIOPARSER::FastqReader>(path_to_file2);
-    // read a predefined size of bytes (size_in_bytes) or whole file (-1)
-    fastq_reader->read_objects(fastq_objects, size_in_bytes);
+    // read a predefined size of bytes
+    while (true) {
+        auto status = fastq_reader->read_objects(fastq_objects, size_in_bytes);
+        ...
+        if (status == false) {
+            break;
+        }
+    }
 
 
     // define a class for overlaps in MHAP format
@@ -60,8 +66,7 @@ If you would like to add bioparser to your project, include the bioparser.hpp fi
 
     std::vector<std::unique_ptr<ExampleClass3>> mhap_objects;
     auto mhap_reader = BIOPARSER::createReader<ExampleClass3, BIOPARSER::MhapReader>(path_to_file3);
-    // read a predefined size of bytes (size_in_bytes) or whole file (-1)
-    mhap_reader->read_objects(mhap_objects, size_in_bytes);
+    mhap_reader->read_objects(mhap_objects, -1);
 
 
     // define a class for overlaps in PAF format or add a constructor to existing overlap class
@@ -77,8 +82,7 @@ If you would like to add bioparser to your project, include the bioparser.hpp fi
 
     std::vector<std::unique_ptr<ExampleClass3>> paf_objects;
     auto phap_reader = BIOPARSER::createReader<ExampleClass3, BIOPARSER::PafReader>(path_to_file4);
-    // read a predefined size of bytes (size_in_bytes) or whole file (-1)
-    paf_reader->read_objects(paf_objects, size_in_bytes);
+    paf_reader->read_objects(paf_objects, -1);
 
 If your class has a **private** constructor with the required signature, format your classes in the following way:
 

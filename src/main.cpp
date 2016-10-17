@@ -73,7 +73,15 @@ int main(int argc, char** argv) {
 
     auto reader = createReader<Read, FastaReader>(argv[1]);
     std::vector<std::unique_ptr<Read>> test;
-    reader->read_objects(test, 10000000000000);
+
+    uint32_t size_in_bytes = 5 * 1024 * 1024; // 5 MB
+    //uint32_t size_in_bytes = -1; // everything
+    while (true) {
+        auto status = reader->read_objects(test, size_in_bytes);
+        if (!status) {
+            break;
+        }
+    }
 
     gettimeofday(&stop, nullptr);
     fprintf(stderr, "FASTA: %.5lf\n", (((stop.tv_sec - start.tv_sec) * 1000000L + stop.tv_usec)
@@ -87,7 +95,12 @@ int main(int argc, char** argv) {
 
     auto qreader = createReader<Read, FastqReader>(argv[2]);
     std::vector<std::unique_ptr<Read>> test2;
-    qreader->read_objects(test2, 10000000000000);
+    while (true) {
+        auto status = qreader->read_objects(test2, size_in_bytes);
+        if (!status) {
+            break;
+        }
+    }
 
     gettimeofday(&stop, nullptr);
     fprintf(stderr, "FASTQ: %.5lf\n", (((stop.tv_sec - start.tv_sec) * 1000000L + stop.tv_usec)
@@ -101,7 +114,12 @@ int main(int argc, char** argv) {
 
     auto mreader = createReader<Overlap, MhapReader>(argv[3]);
     std::vector<std::unique_ptr<Overlap>> test3;
-    mreader->read_objects(test3, 10000000000000);
+    while (true) {
+        auto status = mreader->read_objects(test3, size_in_bytes);
+        if (!status) {
+            break;
+        }
+    }
 
     gettimeofday(&stop, nullptr);
     fprintf(stderr, "MHAP: %.5lf\n", (((stop.tv_sec - start.tv_sec) * 1000000L + stop.tv_usec)
@@ -117,7 +135,12 @@ int main(int argc, char** argv) {
 
     auto preader = createReader<Overlap, PafReader>(argv[4]);
     std::vector<std::unique_ptr<Overlap>> test4;
-    preader->read_objects(test4, 10000000000000);
+    while (true) {
+        auto status = preader->read_objects(test4, size_in_bytes);
+        if (!status) {
+            break;
+        }
+    }
 
     gettimeofday(&stop, nullptr);
     fprintf(stderr, "PAF: %.5lf\n", (((stop.tv_sec - start.tv_sec) * 1000000L + stop.tv_usec)
