@@ -64,7 +64,7 @@ class Reader {
 
         std::unique_ptr<FILE, int(*)(FILE*)> input_file_;
         std::vector<char> buffer_;
-        uint32_t num_objects_read_;
+        uint64_t num_objects_read_;
 };
 
 template<class T>

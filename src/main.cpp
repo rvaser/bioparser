@@ -10,18 +10,18 @@ using namespace BIOPARSER;
 
 class Read {
     public:
-        Read(uint32_t id, const char* name, uint32_t name_length, const char* data,
+        Read(uint64_t id, const char* name, uint32_t name_length, const char* data,
             uint32_t data_length)
                 : id_(id), name_(name, name_length), data_(data, data_length), quality_() {
         }
 
-        Read(uint32_t id, const char* name, uint32_t name_length, const char* data,
+        Read(uint64_t id, const char* name, uint32_t name_length, const char* data,
             uint32_t data_length, const char* quality, uint32_t quality_length)
                 : id_(id), name_(name, name_length), data_(data, data_length),
                 quality_(quality, quality_length) {
         }
 
-        uint32_t id_;
+        uint64_t id_;
         std::string name_;
         std::string data_;
         std::string quality_;
@@ -29,7 +29,7 @@ class Read {
 
 class Overlap {
     public:
-        Overlap(uint32_t id, uint32_t a_id, uint32_t b_id, double error, uint32_t minmers,
+        Overlap(uint64_t id, uint32_t a_id, uint32_t b_id, double error, uint32_t minmers,
             uint32_t a_rc, uint32_t a_begin, uint32_t a_end, uint32_t a_length,
             uint32_t b_rc, uint32_t b_begin, uint32_t b_end, uint32_t b_length)
                 : id_(id), a_id_(a_id), b_id_(b_id), error_(error), minmers_(minmers),
@@ -38,7 +38,7 @@ class Overlap {
                 quality_(), a_name_(), b_name_() {
         }
 
-        Overlap(uint32_t id, const char* a_name, uint32_t a_name_length, uint32_t a_length, uint32_t a_begin, uint32_t a_end, char orientation,
+        Overlap(uint64_t id, const char* a_name, uint32_t a_name_length, uint32_t a_length, uint32_t a_begin, uint32_t a_end, char orientation,
             const char* b_name, uint32_t b_name_length, uint32_t b_length, uint32_t b_begin, uint32_t b_end,
             uint32_t matching_bases, uint32_t overlap_length, uint32_t quality)
                 : id_(id), a_id_(atoi(a_name)), b_id_(atoi(b_name)), error_(matching_bases / (double) overlap_length), minmers_(),
@@ -47,7 +47,7 @@ class Overlap {
                 quality_(quality), a_name_(a_name, a_name_length), b_name_(b_name, b_name_length) {
         }
 
-        uint32_t id_;
+        uint64_t id_;
         uint32_t a_id_;
         uint32_t b_id_;
         double error_;

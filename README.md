@@ -18,7 +18,7 @@ If you would like to add bioparser to your project, include the bioparser.hpp fi
     class ExampleClass {
         public:
             // required signature for the constructor
-            ExampleClass(uint32_t object_id, const char* name, uint32_t name_length,
+            ExampleClass(uint64_t object_id, const char* name, uint32_t name_length,
                 const char* data, uint32_t data_length) {
                 ...
             }
@@ -34,7 +34,7 @@ If you would like to add bioparser to your project, include the bioparser.hpp fi
     class ExampleClass2 {
         public:
             // required signature for the constructor
-            ExampleClass2(uint32_t object_id, const char* name, uint32_t name_length,
+            ExampleClass2(uint64_t object_id, const char* name, uint32_t name_length,
                 const char* data, uint32_t data_length, const char* quality,
                 uint32_t quality_length) {
                 ...
@@ -57,7 +57,7 @@ If you would like to add bioparser to your project, include the bioparser.hpp fi
     class ExampleClass3 {
         public:
             // required signature for the constructor
-            ExampleClass3(uint32_t object_id, uint32_t a_id, uint32_t b_id, double eq_bases_perc, uint32_t minmers,
+            ExampleClass3(uint64_t object_id, uint32_t a_id, uint32_t b_id, double eq_bases_perc, uint32_t minmers,
                 uint32_t a_rc, uint32_t a_begin, uint32_t a_end, uint32_t a_length,
                 uint32_t b_rc, uint32_t b_begin, uint32_t b_end, uint32_t b_length) {
                 ...
@@ -71,7 +71,7 @@ If you would like to add bioparser to your project, include the bioparser.hpp fi
 
     // define a class for overlaps in PAF format or add a constructor to existing overlap class
     ...
-        ExampleClass3(uint32_t object_id, const char* a_name, uint32_t a_name_length,
+        ExampleClass3(uint64_t object_id, const char* a_name, uint32_t a_name_length,
             uint32_t a_begin, uint32_t a_end, char orientation, const char* b_name,
             uint32_t b_name_length, uint32_t b_begin, uint32_t b_end,
             uint32_t matching_bases, uint32_t overlap_length,
