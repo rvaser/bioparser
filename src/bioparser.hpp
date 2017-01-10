@@ -25,7 +25,7 @@ constexpr uint32_t kLargeBufferSize = 500 * 1024 * 1024; // 500 MB
 template<class T>
 class Reader;
 
-template<class T, template<class T> class U>
+template<class T, template<class T_> class U>
 std::unique_ptr<Reader<T>> createReader(const std::string& path);
 
 /*!
@@ -79,7 +79,7 @@ bool Reader<T>::read_objects(std::vector<std::shared_ptr<T>>& dst, uint64_t max_
     return ret;
 }
 
-template<class T, template<class T> class U>
+template<class T, template<class T_> class U>
 std::unique_ptr<Reader<T>> createReader(const std::string& path) {
 
     auto input_file = fopen(path.c_str(), "r");
