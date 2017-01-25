@@ -111,7 +111,6 @@ bool FastaReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t
 
     std::string name(kSmallBufferSize, 0);
     uint32_t name_length = 0;
-    bool is_name = true;
 
     char* data = &this->large_buffer_[0];
     uint32_t data_length = 0;
@@ -119,6 +118,9 @@ bool FastaReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t
     // unique_ptr<FILE> to FILE*
     auto input_file = this->input_file_.get();
     bool is_end = feof(input_file);
+
+    bool is_valid = false;
+    uint32_t line_number = 0;
 
     while (!is_end) {
 
@@ -136,10 +138,41 @@ bool FastaReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t
         for (uint32_t i = 0; i < read_bytes; ++i) {
             auto c = this->buffer_[i];
 
-            if (!is_name && (c == '>' || (is_end && i == read_bytes - 1))) {
+            if (c == '\n') {
+                ++line_number;
+                if (is_end && i == read_bytes - 1) {
+                    is_valid = true;
+                }
+            } else if (c == '>' && line_number != 0) {
+                is_valid = true;
+                line_number = 0;
+            } else {
+                switch (line_number) {
+                    case 0:
+                        if (name_length < kSmallBufferSize) {
+                            if (!(name_length == 0 && (c == '>' || isspace(c)))) {
+                                name[name_length++] = c;
+                            }
+                        }
+                        break;
+                    default:
+                        data[data_length++] = c;
+                        if (data_length >= this->large_buffer_.size()) {
+                            this->large_buffer_.resize(kLargeBufferSize, 0);
+                            data = &this->large_buffer_[0];
+                        }
+                        break;
+                }
+            }
 
+            ++current_bytes;
+
+            if (is_valid) {
                 while (name_length > 0 && isspace(name[name_length - 1])) {
                     --name_length;
+                }
+                while (data_length > 0 && isspace(data[data_length - 1])) {
+                    --data_length;
                 }
 
                 dst.emplace_back(std::unique_ptr<T>(new T(this->num_objects_read_,
@@ -149,29 +182,9 @@ bool FastaReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t
                 current_bytes = 0;
 
                 name_length = 0;
-                is_name = true;
                 data_length = 0;
+                is_valid = false;
             }
-
-            if (is_name) {
-                if (c == '\n') {
-                    is_name = false;
-                } else if (name_length == kSmallBufferSize) {
-                    continue;
-                } else if (!(name_length == 0 && (c == '>' || isspace(c)))) {
-                    name[name_length++] = c;
-                }
-            } else {
-                if (!isspace(c)) {
-                    data[data_length++] = c;
-                    if (data_length >= this->large_buffer_.size()) {
-                        this->large_buffer_.resize(kLargeBufferSize, 0);
-                        data = &this->large_buffer_[0];
-                    }
-                }
-            }
-
-            ++current_bytes;
         }
     }
 
