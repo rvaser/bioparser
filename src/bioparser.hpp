@@ -13,7 +13,7 @@
 #include <string>
 #include <vector>
 
-namespace BIOPARSER {
+namespace bioparser {
 
 constexpr uint32_t kSmallBufferSize = 4 * 1024; // 4 kB
 constexpr uint32_t kMediumBufferSize = 5 * 1024 * 1024; // 5 MB
@@ -42,9 +42,6 @@ class MhapReader; // inherits Reader
 
 template<class T>
 class PafReader; // inherits Reader
-
-// taken (and modified a bit) from http://www.leapsecond.com/tools/fast_atof.c
-static double fast_atof(const char* p);
 
 // Implementation of all defined classes and methods above
 template<class T>
@@ -386,7 +383,7 @@ bool MhapReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t 
                             b_id = atoi(&line[start]);
                             break;
                         case 2:
-                            error = fast_atof(&line[start]);
+                            error = atof(&line[start]);
                             break;
                         case 3:
                             minmers = atoi(&line[start]);
@@ -584,75 +581,6 @@ bool PafReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t m
     }
 
     return status;
-}
-
-static double fast_atof(const char* p) {
-    int frac;
-    double sign, value, scale;
-
-    auto valid_digit = [](char c) -> bool {
-        return (c >= '0' && c <= '9');
-    };
-
-    // Skip leading white space, if any.
-    while (isspace(*p)) {
-        ++p;
-    }
-
-    // Get sign, if any.
-    sign = 1.0;
-    if (*p == '-') {
-        sign = -1.0;
-        ++p;
-    } else if (*p == '+') {
-        ++p;
-    }
-
-    // Get digits before decimal point or exponent, if any.
-    for (value = 0.0; valid_digit(*p); ++p) {
-        value = value * 10.0 + (*p - '0');
-    }
-
-    // Get digits after decimal point, if any.
-    if (*p == '.') {
-        double pow10 = 10.0;
-        ++p;
-        while (valid_digit(*p)) {
-            value += (*p - '0') / pow10;
-            pow10 *= 10.0;
-            ++p;
-        }
-    }
-
-    // Handle exponent, if any.
-    frac = 0;
-    scale = 1.0;
-    if ((*p == 'e') || (*p == 'E')) {
-        unsigned int expon;
-
-        // Get sign of exponent, if any.
-        ++p;
-        if (*p == '-') {
-            frac = 1;
-            ++p;
-        } else if (*p == '+') {
-            ++p;
-        }
-
-        // Get digits of exponent, if any.
-        for (expon = 0; valid_digit(*p); ++p) {
-            expon = expon * 10 + (*p - '0');
-        }
-        if (expon > 308) expon = 308;
-
-        // Calculate scaling factor.
-        while (expon >= 50) { scale *= 1E50; expon -= 50; }
-        while (expon >=  8) { scale *= 1E8;  expon -=  8; }
-        while (expon >   0) { scale *= 10.0; expon -=  1; }
-    }
-
-    // Return signed and scaled floating point result.
-    return sign * (frac ? (value / scale) : (value * scale));
 }
 
 }

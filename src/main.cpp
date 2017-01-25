@@ -6,7 +6,7 @@
 
 #include "bioparser.hpp"
 
-using namespace BIOPARSER;
+using namespace bioparser;
 
 class Read {
     public:
