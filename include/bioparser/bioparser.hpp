@@ -8,7 +8,7 @@
 
 #include <stdlib.h>
 #include <stdint.h>
-#include <assert.h>
+#include <exception>
 #include <memory>
 #include <string>
 #include <vector>
@@ -46,22 +46,22 @@ class PafReader; // inherits Reader
 // Implementation of all defined classes and methods above
 template<class T>
 class Reader {
-    public:
-        virtual ~Reader() {}
-        virtual bool read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t max_bytes) = 0;
-        bool read_objects(std::vector<std::shared_ptr<T>>& dst, uint64_t max_bytes);
+public:
+    virtual ~Reader() {}
+    virtual bool read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t max_bytes) = 0;
+    bool read_objects(std::vector<std::shared_ptr<T>>& dst, uint64_t max_bytes);
 
-    protected:
-        Reader(FILE* input_file)
-                : input_file_(input_file, fclose), buffer_(kSmallBufferSize, 0),
-                num_objects_read_(0) {
-        }
-        Reader(const Reader&) = delete;
-        const Reader& operator=(const Reader&) = delete;
+protected:
+    Reader(FILE* input_file)
+            : input_file_(input_file, fclose), buffer_(kSmallBufferSize, 0),
+            num_objects_read_(0) {
+    }
+    Reader(const Reader&) = delete;
+    const Reader& operator=(const Reader&) = delete;
 
-        std::unique_ptr<FILE, int(*)(FILE*)> input_file_;
-        std::vector<char> buffer_;
-        uint64_t num_objects_read_;
+    std::unique_ptr<FILE, int(*)(FILE*)> input_file_;
+    std::vector<char> buffer_;
+    uint64_t num_objects_read_;
 };
 
 template<class T>
@@ -80,26 +80,29 @@ template<class T, template<class T_> class U>
 std::unique_ptr<Reader<T>> createReader(const std::string& path) {
 
     auto input_file = fopen(path.c_str(), "r");
-    assert(input_file != nullptr && "Unable to open file");
+    if (input_file == nullptr) {
+        fprintf(stderr, "Unable to open file %s!\n", path.c_str());
+        exit(-1);
+    }
 
     return std::unique_ptr<Reader<T>>(new U<T>(input_file));
 }
 
 template<class T>
 class FastaReader: public Reader<T> {
-    public:
-        ~FastaReader() {}
-        bool read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t max_bytes);
-        friend std::unique_ptr<Reader<T>> createReader<T, FastaReader>(const std::string& path);
+public:
+    ~FastaReader() {}
+    bool read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t max_bytes);
+    friend std::unique_ptr<Reader<T>> createReader<T, FastaReader>(const std::string& path);
 
-    private:
-        FastaReader(FILE* input_file)
-                : Reader<T>(input_file), large_buffer_(kMediumBufferSize, 0) {
-        }
-        FastaReader(const FastaReader&) = delete;
-        const FastaReader& operator=(const FastaReader&) = delete;
+private:
+    FastaReader(FILE* input_file)
+            : Reader<T>(input_file), large_buffer_(kMediumBufferSize, 0) {
+    }
+    FastaReader(const FastaReader&) = delete;
+    const FastaReader& operator=(const FastaReader&) = delete;
 
-        std::vector<char> large_buffer_;
+    std::vector<char> large_buffer_;
 };
 
 template<class T>
@@ -112,7 +115,7 @@ bool FastaReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t
     std::string name(kSmallBufferSize, 0);
     uint32_t name_length = 0;
 
-    char* data = &this->large_buffer_[0];
+    char* data = &(this->large_buffer_[0]);
     uint32_t data_length = 0;
 
     // unique_ptr<FILE> to FILE*
@@ -193,21 +196,21 @@ bool FastaReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t
 
 template<class T>
 class FastqReader: public Reader<T> {
-    public:
-        ~FastqReader() {}
-        bool read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t max_bytes);
-        friend std::unique_ptr<Reader<T>> createReader<T, FastqReader>(const std::string& path);
+public:
+    ~FastqReader() {}
+    bool read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t max_bytes);
+    friend std::unique_ptr<Reader<T>> createReader<T, FastqReader>(const std::string& path);
 
-    private:
-        FastqReader(FILE* input_file)
-                : Reader<T>(input_file), large_buffer_1_(kMediumBufferSize, 0),
-                large_buffer_2_(kMediumBufferSize, 0) {
-        }
-        FastqReader(const FastqReader&) = delete;
-        const FastqReader& operator=(const FastqReader&) = delete;
+private:
+    FastqReader(FILE* input_file)
+            : Reader<T>(input_file), large_buffer_1_(kMediumBufferSize, 0),
+            large_buffer_2_(kMediumBufferSize, 0) {
+    }
+    FastqReader(const FastqReader&) = delete;
+    const FastqReader& operator=(const FastqReader&) = delete;
 
-        std::vector<char> large_buffer_1_;
-        std::vector<char> large_buffer_2_;
+    std::vector<char> large_buffer_1_;
+    std::vector<char> large_buffer_2_;
 };
 
 template<class T>
@@ -220,10 +223,10 @@ bool FastqReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t
     std::string name(kSmallBufferSize, 0);
     uint32_t name_length = 0;
 
-    char* data = &this->large_buffer_1_[0];
+    char* data = &(this->large_buffer_1_[0]);
     uint32_t data_length = 0;
 
-    char* quality = &this->large_buffer_2_[0];
+    char* quality = &(this->large_buffer_2_[0]);
     uint32_t quality_length = 0;
 
     // unique_ptr<FILE> to FILE*
@@ -319,17 +322,17 @@ bool FastqReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t
 
 template<class T>
 class MhapReader: public Reader<T> {
-    public:
-        ~MhapReader() {}
-        bool read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t max_bytes);
-        friend std::unique_ptr<Reader<T>> createReader<T, MhapReader>(const std::string& path);
+public:
+    ~MhapReader() {}
+    bool read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t max_bytes);
+    friend std::unique_ptr<Reader<T>> createReader<T, MhapReader>(const std::string& path);
 
-    private:
-        MhapReader(FILE* input_file)
-                : Reader<T>(input_file) {
-        }
-        MhapReader(const MhapReader&) = delete;
-        const MhapReader& operator=(const MhapReader&) = delete;
+private:
+    MhapReader(FILE* input_file)
+            : Reader<T>(input_file) {
+    }
+    MhapReader(const MhapReader&) = delete;
+    const MhapReader& operator=(const MhapReader&) = delete;
 };
 
 template<class T>
@@ -431,7 +434,10 @@ bool MhapReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t 
                     start = end + 1;
                 }
                 line_length = 0;
-                assert(values_length == kMhapObjectLength && "Invalid format");
+                if (values_length != kMhapObjectLength) {
+                    fprintf(stderr, "File is not in MHAP format!\n");
+                    exit(-1);
+                }
 
                 dst.emplace_back(std::unique_ptr<T>(new T(this->num_objects_read_,
                     a_id, b_id, error, minmers, a_rc, a_begin, a_end, a_length,
@@ -452,17 +458,17 @@ bool MhapReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t 
 
 template<class T>
 class PafReader: public Reader<T> {
-    public:
-        ~PafReader() {}
-        bool read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t max_bytes);
-        friend std::unique_ptr<Reader<T>> createReader<T, PafReader>(const std::string& path);
+public:
+    ~PafReader() {}
+    bool read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t max_bytes);
+    friend std::unique_ptr<Reader<T>> createReader<T, PafReader>(const std::string& path);
 
-    private:
-        PafReader(FILE* input_file)
-                : Reader<T>(input_file) {
-        }
-        PafReader(const PafReader&) = delete;
-        const PafReader& operator=(const PafReader&) = delete;
+private:
+    PafReader(FILE* input_file)
+            : Reader<T>(input_file) {
+    }
+    PafReader(const PafReader&) = delete;
+    const PafReader& operator=(const PafReader&) = delete;
 };
 
 template<class T>
@@ -574,7 +580,10 @@ bool PafReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t m
                     start = end + 1;
                 }
                 line_length = 0;
-                assert(values_length == kPafObjectLength && "Invalid format");
+                if (values_length != kPafObjectLength) {
+                    fprintf(stderr, "File is not in PAF format!\n");
+                    exit(-1);
+                }
 
                 dst.emplace_back(std::unique_ptr<T>(new T(this->num_objects_read_,
                     a_name, a_name_length, a_length, a_begin, a_end, orientation,
