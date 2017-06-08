@@ -1,6 +1,8 @@
 # bioparser
 
-Bioparser is a c++ implementation of parsers for several bioinformatic formats. It consists of only one header file containing template parsers for FASTA, FASTQ, MHAP and PAF formats. Hopefully more formats will be added in the future.
+![image](https://travis-ci.org/rvaser/bioparser.svg?branch=refactor)
+
+Bioparser is a c++ implementation of parsers for several bioinformatics formats. It consists of only one header file containing template parsers for FASTA, FASTQ, MHAP and PAF formats.
 
 ## Dependencies
 
@@ -8,11 +10,12 @@ Bioparser is a c++ implementation of parsers for several bioinformatic formats. 
 
 Application uses following software:
 
-1. gcc 4.8+
+1. gcc 4.8+ or clang 3.4+
+2. (optional) cmake 3.2+
 
 ## Usage
 
-If you would like to add bioparser to your project, include the bioparser.hpp file while compiling and add -std=c++11 to your compiler flag list. For details on how to use the parsers, please look at the examples bellow:
+If you would like to add bioparser to your project, include the bioparser.hpp file while compiling and add -std=c++11 to your compiler flag list. Or add it to your CMakeLists.txt file with the 'add_subdirectory' command. For details on how to use the parsers, please look at the examples bellow:
 
     // define a class for sequences in FASTA format
     class ExampleClass {
