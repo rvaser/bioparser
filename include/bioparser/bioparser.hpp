@@ -92,7 +92,7 @@ class FastaReader: public Reader<T> {
 public:
     ~FastaReader() {}
     bool read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t max_bytes);
-    friend std::unique_ptr<Reader<T>> createReader<T, FastaReader>(const std::string& path);
+    friend std::unique_ptr<Reader<T>> createReader<T, bioparser::FastaReader>(const std::string& path);
 private:
     FastaReader(FILE* input_file)
             : Reader<T>(input_file), large_buffer_(kMediumBufferSize, 0) {
@@ -208,7 +208,7 @@ class FastqReader: public Reader<T> {
 public:
     ~FastqReader() {}
     bool read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t max_bytes);
-    friend std::unique_ptr<Reader<T>> createReader<T, FastqReader>(const std::string& path);
+    friend std::unique_ptr<Reader<T>> createReader<T, bioparser::FastqReader>(const std::string& path);
 private:
     FastqReader(FILE* input_file)
             : Reader<T>(input_file), large_buffer_1_(kMediumBufferSize, 0),
@@ -345,7 +345,7 @@ class MhapReader: public Reader<T> {
 public:
     ~MhapReader() {}
     bool read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t max_bytes);
-    friend std::unique_ptr<Reader<T>> createReader<T, MhapReader>(const std::string& path);
+    friend std::unique_ptr<Reader<T>> createReader<T, bioparser::MhapReader>(const std::string& path);
 private:
     MhapReader(FILE* input_file)
             : Reader<T>(input_file) {
@@ -485,7 +485,7 @@ class PafReader: public Reader<T> {
 public:
     ~PafReader() {}
     bool read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t max_bytes);
-    friend std::unique_ptr<Reader<T>> createReader<T, PafReader>(const std::string& path);
+    friend std::unique_ptr<Reader<T>> createReader<T, bioparser::PafReader>(const std::string& path);
 private:
     PafReader(FILE* input_file)
             : Reader<T>(input_file) {
