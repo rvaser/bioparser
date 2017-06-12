@@ -11,25 +11,25 @@
 
 class Read {
 public:
-    Read(uint64_t id_, const char* name_, uint32_t name_length_,
-        const char* data_, uint32_t data_length_)
-            : id(id_), name(name_, name_length_), data(data_, data_length_),
-            quality() {
+    Read(uint64_t id, const char* name, uint32_t name_length,
+        const char* data, uint32_t data_length)
+            : id_(id), name_(name, name_length), data_(data, data_length),
+            quality_() {
     }
 
-    Read(uint64_t id_, const char* name_, uint32_t name_length_,
-        const char* data_, uint32_t data_length_,
-        const char* quality_, uint32_t quality_length_)
-            : id(id_), name(name_, name_length_), data(data_, data_length_),
-            quality(quality_, quality_length_) {
+    Read(uint64_t id, const char* name, uint32_t name_length,
+        const char* data, uint32_t data_length,
+        const char* quality, uint32_t quality_length)
+            : id_(id), name_(name, name_length), data_(data, data_length),
+            quality_(quality, quality_length) {
     }
 
     ~Read() {}
 
-    uint64_t id;
-    std::string name;
-    std::string data;
-    std::string quality;
+    uint64_t id_;
+    std::string name_;
+    std::string data_;
+    std::string quality_;
 };
 
 void reads_summary(uint32_t& name_size, uint32_t& data_size, uint32_t& quality_size,
@@ -39,46 +39,46 @@ void reads_summary(uint32_t& name_size, uint32_t& data_size, uint32_t& quality_s
     data_size = 0;
     quality_size = 0;
     for (const auto& it: reads) {
-        name_size += it->name.size();
-        data_size += it->data.size();
-        quality_size += it->quality.size();
+        name_size += it->name_.size();
+        data_size += it->data_.size();
+        quality_size += it->quality_.size();
     }
 }
 
 class Overlap {
 public:
-    Overlap(uint64_t id_, uint32_t a_id_, uint32_t b_id_, double error, uint32_t minmers,
-        uint32_t a_rc, uint32_t a_begin_, uint32_t a_end_, uint32_t a_length_,
-        uint32_t b_rc, uint32_t b_begin_, uint32_t b_end_, uint32_t b_length_)
-            : id(id_),
-            a_id(a_id_ - 1), a_begin(a_begin_), a_end(a_end_), a_length(a_length_),
-            b_id(b_id_ - 1), b_begin(b_begin_), b_end(b_end_), b_length(b_length_),
-            orientation(a_rc == b_rc ? '+' : '-') {
+    Overlap(uint64_t id, uint32_t a_id, uint32_t b_id, double error, uint32_t minmers,
+        uint32_t a_rc, uint32_t a_begin, uint32_t a_end, uint32_t a_length,
+        uint32_t b_rc, uint32_t b_begin, uint32_t b_end, uint32_t b_length)
+            : id_(id),
+            a_id_(a_id - 1), a_begin_(a_begin), a_end_(a_end), a_length_(a_length),
+            b_id_(b_id - 1), b_begin_(b_begin), b_end_(b_end), b_length_(b_length),
+            orientation_(a_rc == b_rc ? '+' : '-') {
     }
 
-    Overlap(uint64_t id_, const char* a_name, uint32_t a_name_length,
-        uint32_t a_length_, uint32_t a_begin_, uint32_t a_end_, char orientation_,
-        const char* b_name, uint32_t b_name_length, uint32_t b_length_,
-        uint32_t b_begin_, uint32_t b_end_, uint32_t matching_bases,
+    Overlap(uint64_t id, const char* a_name, uint32_t a_name_length,
+        uint32_t a_length, uint32_t a_begin, uint32_t a_end, char orientation,
+        const char* b_name, uint32_t b_name_length, uint32_t b_length,
+        uint32_t b_begin, uint32_t b_end, uint32_t matching_bases,
         uint32_t overlap_length, uint32_t quality)
-            : id(id_),
-            a_id(atoi(a_name) - 1), a_begin(a_begin_), a_end(a_end_), a_length(a_length_),
-            b_id(atoi(b_name) - 1), b_begin(b_begin_), b_end(b_end_), b_length(b_length_),
-            orientation(orientation_) {
+            : id_(id),
+            a_id_(atoi(a_name) - 1), a_begin_(a_begin), a_end_(a_end), a_length_(a_length),
+            b_id_(atoi(b_name) - 1), b_begin_(b_begin), b_end_(b_end), b_length_(b_length),
+            orientation_(orientation) {
     }
 
     ~Overlap() {}
 
-    uint64_t id;
-    uint32_t a_id;
-    uint32_t a_begin;
-    uint32_t a_end;
-    uint32_t a_length;
-    uint32_t b_id;
-    uint32_t b_begin;
-    uint32_t b_end;
-    uint32_t b_length;
-    char orientation;
+    uint64_t id_;
+    uint32_t a_id_;
+    uint32_t a_begin_;
+    uint32_t a_end_;
+    uint32_t a_length_;
+    uint32_t b_id_;
+    uint32_t b_begin_;
+    uint32_t b_end_;
+    uint32_t b_length_;
+    char orientation_;
 };
 
 class BioparserFastaTest: public ::testing::Test {
