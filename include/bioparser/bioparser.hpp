@@ -91,7 +91,7 @@ template<class T>
 class FastaReader: public Reader<T> {
 public:
     ~FastaReader() {}
-    bool read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t max_bytes);
+    bool read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t max_bytes) override;
     friend std::unique_ptr<Reader<T>> createReader<T, bioparser::FastaReader>(const std::string& path);
 private:
     FastaReader(FILE* input_file)
@@ -207,7 +207,7 @@ template<class T>
 class FastqReader: public Reader<T> {
 public:
     ~FastqReader() {}
-    bool read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t max_bytes);
+    bool read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t max_bytes) override;
     friend std::unique_ptr<Reader<T>> createReader<T, bioparser::FastqReader>(const std::string& path);
 private:
     FastqReader(FILE* input_file)
@@ -344,7 +344,7 @@ template<class T>
 class MhapReader: public Reader<T> {
 public:
     ~MhapReader() {}
-    bool read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t max_bytes);
+    bool read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t max_bytes) override;
     friend std::unique_ptr<Reader<T>> createReader<T, bioparser::MhapReader>(const std::string& path);
 private:
     MhapReader(FILE* input_file)
@@ -484,7 +484,7 @@ template<class T>
 class PafReader: public Reader<T> {
 public:
     ~PafReader() {}
-    bool read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t max_bytes);
+    bool read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t max_bytes) override;
     friend std::unique_ptr<Reader<T>> createReader<T, bioparser::PafReader>(const std::string& path);
 private:
     PafReader(FILE* input_file)
