@@ -15,7 +15,7 @@ Application uses following software:
 
 ## Usage
 
-If you would like to add bioparser to your project, include the 'include/bioparser/bioparser.hpp' file while compiling and add '-std=c++11' to your compiler flag list. Alternatively, add the project to your CMakeLists.txt file with the 'add_subdirectory' command.
+If you would like to add bioparser to your project, include the 'include/bioparser/bioparser.hpp' file while compiling and add '-std=c++11' to your compiler flag list. Alternatively, add the project to your CMakeLists.txt file with the 'add_subdirectory' command and link the library with the 'target_link_libraries' command.
 
 For details on how to use the parsers in your code, please look at the examples bellow:
 
