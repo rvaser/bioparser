@@ -48,7 +48,10 @@ template<class T>
 class Reader {
 public:
     virtual ~Reader() {}
-    virtual bool read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t max_bytes) = 0;
+
+    virtual bool read_objects(std::vector<std::unique_ptr<T>>& dst,
+        uint64_t max_bytes) = 0;
+
     bool read_objects(std::vector<std::shared_ptr<T>>& dst, uint64_t max_bytes);
 protected:
     Reader(FILE* input_file)
@@ -64,7 +67,8 @@ protected:
 };
 
 template<class T>
-bool Reader<T>::read_objects(std::vector<std::shared_ptr<T>>& dst, uint64_t max_bytes) {
+bool Reader<T>::read_objects(std::vector<std::shared_ptr<T>>& dst,
+    uint64_t max_bytes) {
 
     std::vector<std::unique_ptr<T>> tmp;
     auto ret = read_objects(tmp, max_bytes);
@@ -80,7 +84,8 @@ std::unique_ptr<Reader<T>> createReader(const std::string& path) {
 
     auto input_file = fopen(path.c_str(), "r");
     if (input_file == nullptr) {
-        fprintf(stderr, "bioparser::createReader error: unable to open file %s!\n", path.c_str());
+        fprintf(stderr, "bioparser::createReader error: "
+            "unable to open file %s!\n", path.c_str());
         exit(-1);
     }
 
@@ -91,8 +96,12 @@ template<class T>
 class FastaReader: public Reader<T> {
 public:
     ~FastaReader() {}
-    bool read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t max_bytes) override;
-    friend std::unique_ptr<Reader<T>> createReader<T, bioparser::FastaReader>(const std::string& path);
+
+    bool read_objects(std::vector<std::unique_ptr<T>>& dst,
+        uint64_t max_bytes) override;
+
+    friend std::unique_ptr<Reader<T>>
+        createReader<T, bioparser::FastaReader>(const std::string& path);
 private:
     FastaReader(FILE* input_file)
             : Reader<T>(input_file), large_buffer_(kMediumBufferSize, 0) {
@@ -104,7 +113,8 @@ private:
 };
 
 template<class T>
-bool FastaReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t max_bytes) {
+bool FastaReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst,
+    uint64_t max_bytes) {
 
     bool status = false;
     uint64_t current_bytes = 0;
@@ -133,7 +143,8 @@ bool FastaReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t
         total_bytes += read_bytes;
         if (max_bytes != 0 && total_bytes > max_bytes) {
             if (last_object_id == this->num_objects_read_) {
-                fprintf(stderr, "bioparser::FastaReader error: too small chunk size!\n");
+                fprintf(stderr, "bioparser::FastaReader error: "
+                    "too small chunk size!\n");
                 exit(-1);
             }
             fseek(input_file, -(current_bytes + read_bytes), SEEK_CUR);
@@ -182,7 +193,8 @@ bool FastaReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t
                 }
 
                 if (name_length == 0 || name[0] != '>' || data_length == 0) {
-                    fprintf(stderr, "bioparser::FastaReader error: invalid file format!\n");
+                    fprintf(stderr, "bioparser::FastaReader error: "
+                        "invalid file format!\n");
                     exit(-1);
                 }
 
@@ -207,8 +219,12 @@ template<class T>
 class FastqReader: public Reader<T> {
 public:
     ~FastqReader() {}
-    bool read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t max_bytes) override;
-    friend std::unique_ptr<Reader<T>> createReader<T, bioparser::FastqReader>(const std::string& path);
+
+    bool read_objects(std::vector<std::unique_ptr<T>>& dst,
+        uint64_t max_bytes) override;
+
+    friend std::unique_ptr<Reader<T>>
+        createReader<T, bioparser::FastqReader>(const std::string& path);
 private:
     FastqReader(FILE* input_file)
             : Reader<T>(input_file), large_buffer_1_(kMediumBufferSize, 0),
@@ -222,7 +238,8 @@ private:
 };
 
 template<class T>
-bool FastqReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t max_bytes) {
+bool FastqReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst,
+    uint64_t max_bytes) {
 
     bool status = false;
     uint64_t current_bytes = 0;
@@ -254,7 +271,8 @@ bool FastqReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t
         total_bytes += read_bytes;
         if (max_bytes != 0 && total_bytes > max_bytes) {
             if (last_object_id == this->num_objects_read_) {
-                fprintf(stderr, "bioparser::FastqReader error: too small chunk size!\n");
+                fprintf(stderr, "bioparser::FastqReader error: "
+                    "too small chunk size!\n");
                 exit(-1);
             }
             fseek(input_file, -(current_bytes + read_bytes), SEEK_CUR);
@@ -317,7 +335,8 @@ bool FastqReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t
 
                 if (name_length == 0 || name[0] != '@' || data_length == 0 ||
                     quality_length == 0 || data_length != quality_length) {
-                    fprintf(stderr, "bioparser::FastqReader error: invalid file format!\n");
+                    fprintf(stderr, "bioparser::FastqReader error: "
+                        "invalid file format!\n");
                     exit(-1);
                 }
 
@@ -344,8 +363,12 @@ template<class T>
 class MhapReader: public Reader<T> {
 public:
     ~MhapReader() {}
-    bool read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t max_bytes) override;
-    friend std::unique_ptr<Reader<T>> createReader<T, bioparser::MhapReader>(const std::string& path);
+
+    bool read_objects(std::vector<std::unique_ptr<T>>& dst,
+        uint64_t max_bytes) override;
+
+    friend std::unique_ptr<Reader<T>>
+        createReader<T, bioparser::MhapReader>(const std::string& path);
 private:
     MhapReader(FILE* input_file)
             : Reader<T>(input_file) {
@@ -355,7 +378,8 @@ private:
 };
 
 template<class T>
-bool MhapReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t max_bytes) {
+bool MhapReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst,
+    uint64_t max_bytes) {
 
     bool status = false;
     uint64_t current_bytes = 0;
@@ -370,8 +394,8 @@ bool MhapReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t 
     auto input_file = this->input_file_.get();
     bool is_end = feof(input_file);
 
-    uint32_t a_id = 0, b_id = 0, minmers = 0, a_rc = 0, a_begin = 0, a_end = 0, a_length = 0,
-        b_rc = 0, b_begin = 0, b_end = 0, b_length = 0;
+    uint32_t a_id = 0, b_id = 0, minmers = 0, a_rc = 0, a_begin = 0, a_end = 0,
+        a_length = 0, b_rc = 0, b_begin = 0, b_end = 0, b_length = 0;
     double error = 0;
 
     auto last_object_id = this->num_objects_read_;
@@ -385,7 +409,8 @@ bool MhapReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t 
         total_bytes += read_bytes;
         if (max_bytes != 0 && total_bytes > max_bytes) {
             if (last_object_id == this->num_objects_read_) {
-                fprintf(stderr, "bioparser::MhapReader error: too small chunk size!\n");
+                fprintf(stderr, "bioparser::MhapReader error: "
+                    "too small chunk size!\n");
                 exit(-1);
             }
             fseek(input_file, -(current_bytes + read_bytes), SEEK_CUR);
@@ -409,7 +434,8 @@ bool MhapReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t 
 
                 size_t start = 0, end = 0;
                 while (true) {
-                    end = line.find(values_length == kMhapObjectLength - 1 ? '\0' : ' ', start);
+                    end = line.find(values_length == kMhapObjectLength - 1 ?
+                        '\0' : ' ', start);
                     if (end == std::string::npos) {
                         break;
                     }
@@ -459,7 +485,8 @@ bool MhapReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t 
                 }
                 line_length = 0;
                 if (values_length != kMhapObjectLength) {
-                    fprintf(stderr, "bioparser::MhapReader error: invalid file format!\n");
+                    fprintf(stderr, "bioparser::MhapReader error: "
+                        "invalid file format!\n");
                     exit(-1);
                 }
 
@@ -484,8 +511,12 @@ template<class T>
 class PafReader: public Reader<T> {
 public:
     ~PafReader() {}
-    bool read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t max_bytes) override;
-    friend std::unique_ptr<Reader<T>> createReader<T, bioparser::PafReader>(const std::string& path);
+
+    bool read_objects(std::vector<std::unique_ptr<T>>& dst,
+        uint64_t max_bytes) override;
+
+    friend std::unique_ptr<Reader<T>>
+        createReader<T, bioparser::PafReader>(const std::string& path);
 private:
     PafReader(FILE* input_file)
             : Reader<T>(input_file) {
@@ -495,7 +526,8 @@ private:
 };
 
 template<class T>
-bool PafReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t max_bytes) {
+bool PafReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst,
+    uint64_t max_bytes) {
 
     bool status = false;
     uint64_t current_bytes = 0;
@@ -530,7 +562,8 @@ bool PafReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t m
         total_bytes += read_bytes;
         if (max_bytes != 0 && total_bytes > max_bytes) {
             if (last_object_id == this->num_objects_read_) {
-                fprintf(stderr, "bioparser::PafReader error: too small chunk size!\n");
+                fprintf(stderr, "bioparser::PafReader error: "
+                    "too small chunk size!\n");
                 exit(-1);
             }
             fseek(input_file, -(current_bytes + read_bytes), SEEK_CUR);
@@ -554,7 +587,8 @@ bool PafReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t m
 
                 size_t start = 0, end = 0;
                 while (true) {
-                    end = line.find(values_length == kPafObjectLength - 1 ? '\0' : '\t', start);
+                    end = line.find(values_length == kPafObjectLength - 1 ?
+                        '\0' : '\t', start);
                     if (end == std::string::npos) {
                         break;
                     }
@@ -609,7 +643,8 @@ bool PafReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst, uint64_t m
                 }
                 line_length = 0;
                 if (values_length != kPafObjectLength) {
-                    fprintf(stderr, "bioparser::PafReader error: invalid file format!\n");
+                    fprintf(stderr, "bioparser::PafReader error: "
+                        "invalid file format!\n");
                     exit(-1);
                 }
 

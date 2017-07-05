@@ -25,7 +25,7 @@ if (bioparser_build_tests)
 
     add_executable(bioparser_test test/bioparser_test.cpp)
 
-    add_subdirectory(vendor/googletest/googletest)
+    add_subdirectory(vendor/googletest/googletest EXCLUDE_FROM_ALL)
     target_link_libraries(bioparser_test bioparser gtest_main)
 endif(bioparser_build_tests)
 
