@@ -15,7 +15,7 @@ Application uses following software:
 
 ## Usage
 
-If you would like to add bioparser to your project, include the 'include/bioparser/bioparser.hpp' file while compiling and add '-std=c++11' to your compiler flag list. Alternatively, add the project to your CMakeLists.txt file with the 'add_subdirectory' command and link the library with the 'target_link_libraries' command.
+If you would like to add bioparser to your project, add `-Iinclude/` and `-std=c++11` while compiling and include `bioparser/bioparser.hpp` in your desired source files. Alternatively, add the project to your CMakeLists.txt file with the `add_subdirectory(vendor/bioparser EXCLUDE_FROM_ALL)` and `target_link_libraries(your_exe bioparser)` commands.
 
 For details on how to use the parsers in your code, please look at the examples bellow:
 
@@ -37,7 +37,6 @@ std::vector<std::unique_ptr<ExampleClass>> fasta_objects;
 auto fasta_reader = bioparser::createReader<ExampleClass, bioparser::FastaReader>(path_to_file);
 // read the whole file
 fasta_reader->read_objects(fasta_objects, -1);
-
 
 // define a class for sequences in FASTQ format
 class ExampleClass2 {
@@ -66,7 +65,6 @@ while (true) {
     }
 }
 
-
 // define a class for overlaps in MHAP format
 class ExampleClass3 {
     public:
@@ -91,7 +89,6 @@ class ExampleClass3 {
 std::vector<std::unique_ptr<ExampleClass3>> mhap_objects;
 auto mhap_reader = bioparser::createReader<ExampleClass3, bioparser::MhapReader>(path_to_file3);
 mhap_reader->read_objects(mhap_objects, -1);
-
 
 // define a class for overlaps in PAF format or add a constructor to existing overlap class
 ExampleClass3::ExampleClass3(uint64_t object_id,
