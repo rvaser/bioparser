@@ -1,4 +1,4 @@
-# bioparser
+# Bioparser
 
 ![image](https://travis-ci.org/rvaser/bioparser.svg?branch=master)
 
