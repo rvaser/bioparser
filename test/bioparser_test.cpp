@@ -183,6 +183,36 @@ TEST_F(BioparserFastaTest, ChunkSizeError) {
         "bioparser::FastaReader error: too small chunk size!");
 }
 
+TEST_F(BioparserFastaTest, ReadAndRewind) {
+
+    SetUp(bioparser_test_data_path + "sample.fasta");
+
+    std::vector<std::unique_ptr<Read>> reads;
+    reader->read_objects(reads, -1);
+
+    uint32_t reads_size = reads.size(), reads_name_size = 0, reads_data_size = 0,
+        reads_quality_size = 0;
+    reads_summary(reads_name_size, reads_data_size, reads_quality_size, reads);
+
+    uint32_t size_in_bytes = 25 * 1024; // 25 kB
+    reads.clear();
+    reader->rewind();
+    while (reader->read_objects(reads, size_in_bytes)) {
+    }
+
+    uint32_t reads_size_new = reads.size(), reads_name_size_new = 0,
+        reads_data_size_new = 0, reads_quality_size_new = 0;
+    reads_summary(reads_name_size_new, reads_data_size_new,
+        reads_quality_size_new, reads);
+
+    EXPECT_EQ(reads.front()->id_, 0U);
+    EXPECT_EQ(reads.back()->id_, reads.size() - 1);
+    EXPECT_EQ(reads_size_new, reads_size);
+    EXPECT_EQ(reads_name_size_new, reads_name_size);
+    EXPECT_EQ(reads_data_size_new, reads_data_size);
+    EXPECT_EQ(reads_quality_size_new, reads_quality_size);
+}
+
 TEST_F(BioparserFastqTest, ReadWhole) {
 
     SetUp(bioparser_test_data_path + "sample.fastq");

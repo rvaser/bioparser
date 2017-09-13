@@ -49,6 +49,8 @@ class Reader {
 public:
     virtual ~Reader() {}
 
+    void rewind();
+
     virtual bool read_objects(std::vector<std::unique_ptr<T>>& dst,
         uint64_t max_bytes) = 0;
 
@@ -65,6 +67,12 @@ protected:
     std::vector<char> buffer_;
     uint64_t num_objects_read_;
 };
+
+template<class T>
+void Reader<T>::rewind() {
+    fseek(this->input_file_.get(), 0, SEEK_SET);
+    num_objects_read_ = 0;
+}
 
 template<class T>
 bool Reader<T>::read_objects(std::vector<std::shared_ptr<T>>& dst,
