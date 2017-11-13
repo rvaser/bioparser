@@ -293,7 +293,7 @@ bool FastqReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst,
 
             if (c == '\n') {
                 line_number = (line_number + 1) % 4;
-                if (line_number == 0) {
+                if (line_number == 0 || (is_end && i == read_bytes - 1)) {
                     is_valid = true;
                 }
             } else {
