@@ -15,8 +15,7 @@ target_include_directories(bioparser INTERFACE
     $<INSTALL_INTERFACE:include>)
 
 if (bioparser_build_tests)
-    file(COPY test/data DESTINATION ${PROJECT_BINARY_DIR})
-    set(bioparser_test_data_path ${PROJECT_BINARY_DIR}/data/)
+    set(bioparser_test_data_path ${PROJECT_SOURCE_DIR}/test/data/)
     configure_file(
         "${PROJECT_SOURCE_DIR}/test/bioparser_test_config.h.in"
         "${PROJECT_BINARY_DIR}/config/bioparser_test_config.h"

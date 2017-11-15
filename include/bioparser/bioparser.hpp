@@ -94,7 +94,7 @@ std::unique_ptr<Reader<T>> createReader(const std::string& path) {
     if (input_file == nullptr) {
         fprintf(stderr, "bioparser::createReader error: "
             "unable to open file %s!\n", path.c_str());
-        exit(-1);
+        exit(1);
     }
 
     return std::unique_ptr<Reader<T>>(new U<T>(input_file));
@@ -153,7 +153,7 @@ bool FastaReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst,
             if (last_object_id == this->num_objects_read_) {
                 fprintf(stderr, "bioparser::FastaReader error: "
                     "too small chunk size!\n");
-                exit(-1);
+                exit(1);
             }
             fseek(input_file, -(current_bytes + read_bytes), SEEK_CUR);
             status = true;
@@ -203,7 +203,7 @@ bool FastaReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst,
                 if (name_length == 0 || name[0] != '>' || data_length == 0) {
                     fprintf(stderr, "bioparser::FastaReader error: "
                         "invalid file format!\n");
-                    exit(-1);
+                    exit(1);
                 }
 
                 dst.emplace_back(std::unique_ptr<T>(new T(this->num_objects_read_,
@@ -281,7 +281,7 @@ bool FastqReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst,
             if (last_object_id == this->num_objects_read_) {
                 fprintf(stderr, "bioparser::FastqReader error: "
                     "too small chunk size!\n");
-                exit(-1);
+                exit(1);
             }
             fseek(input_file, -(current_bytes + read_bytes), SEEK_CUR);
             status = true;
@@ -345,7 +345,7 @@ bool FastqReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst,
                     quality_length == 0 || data_length != quality_length) {
                     fprintf(stderr, "bioparser::FastqReader error: "
                         "invalid file format!\n");
-                    exit(-1);
+                    exit(1);
                 }
 
                 dst.emplace_back(std::unique_ptr<T>(new T(this->num_objects_read_,
@@ -419,7 +419,7 @@ bool MhapReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst,
             if (last_object_id == this->num_objects_read_) {
                 fprintf(stderr, "bioparser::MhapReader error: "
                     "too small chunk size!\n");
-                exit(-1);
+                exit(1);
             }
             fseek(input_file, -(current_bytes + read_bytes), SEEK_CUR);
             status = true;
@@ -495,7 +495,7 @@ bool MhapReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst,
                 if (values_length != kMhapObjectLength) {
                     fprintf(stderr, "bioparser::MhapReader error: "
                         "invalid file format!\n");
-                    exit(-1);
+                    exit(1);
                 }
 
                 dst.emplace_back(std::unique_ptr<T>(new T(this->num_objects_read_,
@@ -572,7 +572,7 @@ bool PafReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst,
             if (last_object_id == this->num_objects_read_) {
                 fprintf(stderr, "bioparser::PafReader error: "
                     "too small chunk size!\n");
-                exit(-1);
+                exit(1);
             }
             fseek(input_file, -(current_bytes + read_bytes), SEEK_CUR);
             status = true;
@@ -653,7 +653,7 @@ bool PafReader<T>::read_objects(std::vector<std::unique_ptr<T>>& dst,
                 if (values_length != kPafObjectLength) {
                     fprintf(stderr, "bioparser::PafReader error: "
                         "invalid file format!\n");
-                    exit(-1);
+                    exit(1);
                 }
 
                 dst.emplace_back(std::unique_ptr<T>(new T(this->num_objects_read_,
