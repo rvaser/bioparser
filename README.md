@@ -24,17 +24,15 @@ For details on how to use the parsers in your code, please look at the examples 
 class ExampleClass {
     public:
         // required signature for the constructor
-        ExampleClass(uint64_t object_id,
-            const char* name,
-            uint32_t name_length,
-            const char* data,
-            uint32_t data_length) {
+        ExampleClass(
+            const char* name, uint32_t name_length,
+            const char* data, uint32_t data_length) {
             // your implementation
         }
 };
 
 std::vector<std::unique_ptr<ExampleClass>> fasta_objects;
-auto fasta_reader = bioparser::createReader<ExampleClass, bioparser::FastaReader>(path_to_file);
+auto fasta_reader = bioparser::createReader<bioparser::FastaReader, ExampleClass>(path_to_file);
 // read the whole file
 fasta_reader->read_objects(fasta_objects, -1);
 
@@ -42,19 +40,16 @@ fasta_reader->read_objects(fasta_objects, -1);
 class ExampleClass2 {
     public:
         // required signature for the constructor
-        ExampleClass2(uint64_t object_id,
-            const char* name,
-            uint32_t name_length,
-            const char* data,
-            uint32_t data_length,
-            const char* quality,
-            uint32_t quality_length) {
+        ExampleClass2(
+            const char* name, uint32_t name_length,
+            const char* data, uint32_t data_length,
+            const char* quality, uint32_t quality_length) {
             // your implementation
         }
 };
 
 std::vector<std::unique_ptr<ExampleClass2>> fastq_objects;
-auto fastq_reader = bioparser::createReader<ExampleClass2, bioparser::FastqReader>(path_to_file2);
+auto fastq_reader = bioparser::createReader<bioparser::FastqReader, ExampleClass2>(path_to_file2);
 // read a predefined size of bytes
 uint64_t size_in_bytes = 500 * 1024 * 1024; // 500 MB
 while (true) {
@@ -69,7 +64,7 @@ while (true) {
 class ExampleClass3 {
     public:
         // required signature for the constructor
-        ExampleClass3(uint64_t object_id,
+        ExampleClass3(
             uint32_t a_id,
             uint32_t b_id,
             double eq_bases_perc,
@@ -87,18 +82,16 @@ class ExampleClass3 {
 };
 
 std::vector<std::unique_ptr<ExampleClass3>> mhap_objects;
-auto mhap_reader = bioparser::createReader<ExampleClass3, bioparser::MhapReader>(path_to_file3);
+auto mhap_reader = bioparser::createReader<bioparser::MhapReader, ExampleClass3>(path_to_file3);
 mhap_reader->read_objects(mhap_objects, -1);
 
 // define a class for overlaps in PAF format or add a constructor to existing overlap class
-ExampleClass3::ExampleClass3(uint64_t object_id,
-    const char* a_name,
-    uint32_t a_name_length,
+ExampleClass3::ExampleClass3(
+    const char* a_name, uint32_t a_name_length,
     uint32_t a_begin,
     uint32_t a_end,
     char orientation,
-    const char* b_name,
-    uint32_t b_name_length,
+    const char* b_name, uint32_t b_name_length,
     uint32_t b_begin,
     uint32_t b_end,
     uint32_t matching_bases,
@@ -108,7 +101,7 @@ ExampleClass3::ExampleClass3(uint64_t object_id,
 }
 
 std::vector<std::unique_ptr<ExampleClass3>> paf_objects;
-auto phap_reader = bioparser::createReader<ExampleClass3, bioparser::PafReader>(path_to_file4);
+auto phap_reader = bioparser::createReader<bioparser::PafReader, ExampleClass3>(path_to_file4);
 paf_reader->read_objects(paf_objects, -1);
 ```
 If your class has a **private** constructor with the required signature, format your classes in the following way:
