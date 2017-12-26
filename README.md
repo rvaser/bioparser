@@ -87,16 +87,16 @@ mhap_reader->read_objects(mhap_objects, -1);
 
 // define a class for overlaps in PAF format or add a constructor to existing overlap class
 ExampleClass3::ExampleClass3(
-    const char* a_name, uint32_t a_name_length,
-    uint32_t a_begin,
-    uint32_t a_end,
+    const char* q_name, uint32_t q_name_length,
+    uint32_t q_begin,
+    uint32_t q_end,
     char orientation,
-    const char* b_name, uint32_t b_name_length,
-    uint32_t b_begin,
-    uint32_t b_end,
+    const char* t_name, uint32_t t_name_length,
+    uint32_t t_begin,
+    uint32_t t_end,
     uint32_t matching_bases,
     uint32_t overlap_length,
-    uint32_t quality {
+    uint32_t mapping_quality {
     // your implementation
 }
 

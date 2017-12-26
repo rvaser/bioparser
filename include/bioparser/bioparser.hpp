@@ -594,11 +594,11 @@ bool PafParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
     char* line = &(this->storage_[0]);
     uint32_t line_length = 0;
 
-    const char* a_name = nullptr, * b_name = nullptr;
+    const char* q_name = nullptr, * t_name = nullptr;
 
-    uint32_t a_name_length = 0, a_length = 0, a_begin = 0, a_end = 0,
-        b_name_length = 0, b_length = 0, b_begin = 0, b_end = 0,
-        matching_bases = 0, overlap_length = 0, quality = 0;
+    uint32_t q_name_length = 0, q_length = 0, q_begin = 0, q_end = 0,
+        t_name_length = 0, t_length = 0, t_begin = 0, t_end = 0,
+        matching_bases = 0, overlap_length = 0, mapping_quality = 0;
     char orientation = '\0';
 
     while (!is_end) {
@@ -648,33 +648,33 @@ bool PafParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
 
                     switch (values_length) {
                         case 0:
-                            a_name = &line[begin];
-                            a_name_length = end - begin;
+                            q_name = &line[begin];
+                            q_name_length = end - begin;
                             break;
                         case 1:
-                            a_length = atoi(&line[begin]);
+                            q_length = atoi(&line[begin]);
                             break;
                         case 2:
-                            a_begin = atoi(&line[begin]);
+                            q_begin = atoi(&line[begin]);
                             break;
                         case 3:
-                            a_end = atoi(&line[begin]);
+                            q_end = atoi(&line[begin]);
                             break;
                         case 4:
                             orientation = line[begin];
                             break;
                         case 5:
-                            b_name = &line[begin];
-                            b_name_length = end - begin;
+                            t_name = &line[begin];
+                            t_name_length = end - begin;
                             break;
                         case 6:
-                            b_length = atoi(&line[begin]);
+                            t_length = atoi(&line[begin]);
                             break;
                         case 7:
-                            b_begin = atoi(&line[begin]);
+                            t_begin = atoi(&line[begin]);
                             break;
                         case 8:
-                            b_end = atoi(&line[begin]);
+                            t_end = atoi(&line[begin]);
                             break;
                         case 9:
                             matching_bases = atoi(&line[begin]);
@@ -684,7 +684,7 @@ bool PafParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
                             break;
                         case 11:
                         default:
-                            quality = atoi(&line[begin]);
+                            mapping_quality = atoi(&line[begin]);
                             break;
                     }
                     values_length++;
@@ -694,17 +694,17 @@ bool PafParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
                     begin = end + 1;
                 }
 
-                while (a_name_length > 0 && isspace(a_name[a_name_length - 1])) {
-                    --a_name_length;
+                while (q_name_length > 0 && isspace(q_name[q_name_length - 1])) {
+                    --q_name_length;
                 }
-                a_name_length = std::min(a_name_length, kSSS);
+                q_name_length = std::min(q_name_length, kSSS);
 
-                while (b_name_length > 0 && isspace(b_name[b_name_length - 1])) {
-                    --b_name_length;
+                while (t_name_length > 0 && isspace(t_name[t_name_length - 1])) {
+                    --t_name_length;
                 }
-                b_name_length = std::min(b_name_length, kSSS);
+                t_name_length = std::min(t_name_length, kSSS);
 
-                if (a_name_length == 0 || b_name_length == 0 ||
+                if (q_name_length == 0 || t_name_length == 0 ||
                     values_length != kPafObjectLength) {
 
                     fprintf(stderr, "bioparser::PafParser error: "
@@ -712,10 +712,10 @@ bool PafParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
                     exit(1);
                 }
 
-                dst.emplace_back(std::unique_ptr<T>(new T(a_name, a_name_length,
-                    a_length, a_begin, a_end, orientation, b_name, b_name_length,
-                    b_length, b_begin, b_end, matching_bases, overlap_length,
-                    quality)));
+                dst.emplace_back(std::unique_ptr<T>(new T(q_name, q_name_length,
+                    q_length, q_begin, q_end, orientation, t_name, t_name_length,
+                    t_length, t_begin, t_end, matching_bases, overlap_length,
+                    mapping_quality)));
 
                 ++num_objects;
                 current_bytes = 0;
