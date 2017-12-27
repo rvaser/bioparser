@@ -45,6 +45,9 @@ class MhapParser;
 template<class T>
 class PafParser;
 
+template<class T>
+class SamParser;
+
 /*!
  * @brief Parser definitions
  */
@@ -133,9 +136,43 @@ private:
     const PafParser& operator=(const PafParser&) = delete;
 };
 
+template<class T>
+class SamParser: public Parser<T> {
+public:
+    ~SamParser();
+
+    bool parse_objects(std::vector<std::unique_ptr<T>>& dst,
+        uint64_t max_bytes) override;
+
+    friend std::unique_ptr<Parser<T>>
+        createParser<bioparser::SamParser, T>(const std::string& path);
+private:
+    SamParser(FILE* input_file);
+    SamParser(const SamParser&) = delete;
+    const SamParser& operator=(const SamParser&) = delete;
+};
+
 /*!
  * @brief Implementation
  */
+void remove_whitespace(const char* src, uint32_t& src_length) {
+    while (src_length > 0 && isspace(src[src_length - 1])) {
+        --src_length;
+    }
+}
+
+template<template<class> class P, class T>
+std::unique_ptr<Parser<T>> createParser(const std::string& path) {
+
+    auto input_file = fopen(path.c_str(), "r");
+    if (input_file == nullptr) {
+        fprintf(stderr, "bioparser::createParser error: "
+            "unable to open file %s!\n", path.c_str());
+        exit(1);
+    }
+
+    return std::unique_ptr<Parser<T>>(new P<T>(input_file));
+}
 
 template<class T>
 Parser<T>::Parser(FILE* input_file, uint32_t storage_size)
@@ -166,19 +203,6 @@ bool Parser<T>::parse_objects(std::vector<std::shared_ptr<T>>& dst,
     return ret;
 }
 
-template<template<class> class P, class T>
-std::unique_ptr<Parser<T>> createParser(const std::string& path) {
-
-    auto input_file = fopen(path.c_str(), "r");
-    if (input_file == nullptr) {
-        fprintf(stderr, "bioparser::createParser error: "
-            "unable to open file %s!\n", path.c_str());
-        exit(1);
-    }
-
-    return std::unique_ptr<Parser<T>>(new P<T>(input_file));
-}
-
 template<class T>
 FastaParser<T>::FastaParser(FILE* input_file)
         : Parser<T>(input_file, kSSS + kMSS) {
@@ -205,8 +229,8 @@ bool FastaParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
     char* name = &(this->storage_[0]);
     uint32_t name_length = 0;
 
-    char* data = &(this->storage_[kSSS]);
-    uint32_t data_length = 0;
+    char* sequence = &(this->storage_[kSSS]);
+    uint32_t sequence_length = 0;
 
     while (!is_end) {
 
@@ -247,11 +271,11 @@ bool FastaParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
                         }
                         break;
                     default:
-                        data[data_length++] = c;
-                        if (data_length == kMSS) {
+                        sequence[sequence_length++] = c;
+                        if (sequence_length == kMSS) {
                             this->storage_.resize(kSSS + kLSS, 0);
                             name = &(this->storage_[0]);
-                            data = &(this->storage_[kSSS]);
+                            sequence = &(this->storage_[kSSS]);
                         }
                         break;
                 }
@@ -260,14 +284,10 @@ bool FastaParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
             ++current_bytes;
 
             if (is_valid) {
-                while (name_length > 0 && isspace(name[name_length - 1])) {
-                    --name_length;
-                }
-                while (data_length > 0 && isspace(data[data_length - 1])) {
-                    --data_length;
-                }
+                remove_whitespace(name, name_length);
+                remove_whitespace(sequence, sequence_length);
 
-                if (name_length == 0 || name[0] != '>' || data_length == 0) {
+                if (name_length == 0 || name[0] != '>' || sequence_length == 0) {
                     fprintf(stderr, "bioparser::FastaParser error: "
                         "invalid file format!\n");
                     exit(1);
@@ -275,12 +295,12 @@ bool FastaParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
 
                 dst.emplace_back(std::unique_ptr<T>(new T(
                     (const char*) &(name[1]), name_length - 1,
-                    (const char*) data, data_length)));
+                    (const char*) sequence, sequence_length)));
 
                 ++num_objects;
                 current_bytes = 1;
                 name_length = 1;
-                data_length = 0;
+                sequence_length = 0;
                 is_valid = false;
             }
         }
@@ -315,8 +335,8 @@ bool FastqParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
     char* name = &(this->storage_[0]);
     uint32_t name_length = 0;
 
-    char* data = &(this->storage_[kSSS]);
-    uint32_t data_length = 0;
+    char* sequence = &(this->storage_[kSSS]);
+    uint32_t sequence_length = 0;
 
     char* quality = &(this->storage_[kSSS + kMSS]);
     uint32_t quality_length = 0;
@@ -357,11 +377,11 @@ bool FastqParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
                         }
                         break;
                     case 1:
-                        data[data_length++] = c;
-                        if (data_length == kMSS) {
+                        sequence[sequence_length++] = c;
+                        if (sequence_length == kMSS) {
                             this->storage_.resize(kSSS + 2 * kLSS, 0);
                             name = &(this->storage_[0]);
-                            data = &(this->storage_[kSSS]);
+                            sequence = &(this->storage_[kSSS]);
                             quality = &(this->storage_[kSSS + kLSS]);
                         }
                         break;
@@ -381,19 +401,12 @@ bool FastqParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
             ++current_bytes;
 
             if (is_valid) {
+                remove_whitespace(name, name_length);
+                remove_whitespace(sequence, sequence_length);
+                remove_whitespace(quality, quality_length);
 
-                while (name_length > 0 && isspace(name[name_length - 1])) {
-                    --name_length;
-                }
-                while (data_length > 0 && isspace(data[data_length - 1])) {
-                    --data_length;
-                }
-                while (quality_length > 0 && isspace(quality[quality_length - 1])) {
-                    --quality_length;
-                }
-
-                if (name_length == 0 || name[0] != '@' || data_length == 0 ||
-                    quality_length == 0 || data_length != quality_length) {
+                if (name_length == 0 || name[0] != '@' || sequence_length == 0 ||
+                    quality_length == 0 || sequence_length != quality_length) {
                     fprintf(stderr, "bioparser::FastqParser error: "
                         "invalid file format!\n");
                     exit(1);
@@ -401,13 +414,13 @@ bool FastqParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
 
                 dst.emplace_back(std::unique_ptr<T>(new T(
                     (const char*) &(name[1]), name_length - 1,
-                    (const char*) data, data_length,
+                    (const char*) sequence, sequence_length,
                     (const char*) quality, quality_length)));
 
                 ++num_objects;
                 current_bytes = 0;
                 name_length = 0;
-                data_length = 0;
+                sequence_length = 0;
                 quality_length = 0;
                 is_valid = false;
             }
@@ -432,16 +445,13 @@ bool MhapParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
 
     auto input_file = this->input_file_.get();
     bool is_end = feof(input_file);
-    bool is_valid = false;
     bool status = false;
     uint64_t current_bytes = 0;
     uint64_t total_bytes = 0;
     uint64_t num_objects = 0;
     uint64_t last_object_id = num_objects;
-    uint32_t line_number = 0;
 
     const uint32_t kMhapObjectLength = 12;
-    uint32_t values_length = 0;
 
     char* line = &(this->storage_[0]);
     uint32_t line_length = 0;
@@ -477,12 +487,9 @@ bool MhapParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
             if (c == '\n') {
 
                 line[line_length] = 0;
-                while (line_length > 0 && isspace(line[line_length - 1])) {
-                    line[line_length - 1] = 0;
-                    --line_length;
-                }
+                remove_whitespace(line, line_length);
 
-                uint32_t begin = 0;
+                uint32_t num_values = 0, begin = 0;
                 while (true) {
                     uint32_t end = begin;
                     for (uint32_t j = begin; j < line_length; ++j) {
@@ -496,7 +503,7 @@ bool MhapParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
                     }
                     line[end] = 0;
 
-                    switch (values_length) {
+                    switch (num_values) {
                         case 0:
                             a_id = atoi(&line[begin]);
                             break;
@@ -535,14 +542,14 @@ bool MhapParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
                             b_length = atoi(&line[begin]);
                             break;
                     }
-                    values_length++;
-                    if (end == line_length || values_length == kMhapObjectLength) {
+                    num_values++;
+                    if (end == line_length || num_values == kMhapObjectLength) {
                         break;
                     }
                     begin = end + 1;
                 }
 
-                if (values_length != kMhapObjectLength) {
+                if (num_values != kMhapObjectLength) {
                     fprintf(stderr, "bioparser::MhapParser error: "
                         "invalid file format!\n");
                     exit(1);
@@ -555,7 +562,6 @@ bool MhapParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
                 ++num_objects;
                 current_bytes = 0;
                 line_length = 0;
-                values_length = 0;
             } else {
                 line[line_length++] = c;
             }
@@ -580,16 +586,13 @@ bool PafParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
 
     auto input_file = this->input_file_.get();
     bool is_end = feof(input_file);
-    bool is_valid = false;
     bool status = false;
     uint64_t current_bytes = 0;
     uint64_t total_bytes = 0;
     uint64_t num_objects = 0;
     uint64_t last_object_id = num_objects;
-    uint32_t line_number = 0;
 
     const uint32_t kPafObjectLength = 12;
-    uint32_t values_length = 0;
 
     char* line = &(this->storage_[0]);
     uint32_t line_length = 0;
@@ -627,12 +630,9 @@ bool PafParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
             if (c == '\n') {
 
                 line[line_length] = 0;
-                while (line_length > 0 && isspace(line[line_length - 1])) {
-                    line[line_length - 1] = 0;
-                    --line_length;
-                }
+                remove_whitespace(line, line_length);
 
-                uint32_t begin = 0;
+                uint32_t num_values = 0, begin = 0;
                 while (true) {
                     uint32_t end = begin;
                     for (uint32_t j = begin; j < line_length; ++j) {
@@ -646,7 +646,7 @@ bool PafParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
                     }
                     line[end] = 0;
 
-                    switch (values_length) {
+                    switch (num_values) {
                         case 0:
                             q_name = &line[begin];
                             q_name_length = end - begin;
@@ -687,26 +687,26 @@ bool PafParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
                             mapping_quality = atoi(&line[begin]);
                             break;
                     }
-                    values_length++;
-                    if (end == line_length || values_length == kPafObjectLength) {
+                    num_values++;
+                    if (end == line_length || num_values == kPafObjectLength) {
                         break;
                     }
                     begin = end + 1;
                 }
 
-                while (q_name_length > 0 && isspace(q_name[q_name_length - 1])) {
-                    --q_name_length;
+                if (num_values != kPafObjectLength) {
+                    fprintf(stderr, "bioparser::PafParser error: "
+                        "invalid file format!\n");
+                    exit(1);
                 }
-                q_name_length = std::min(q_name_length, kSSS);
 
-                while (t_name_length > 0 && isspace(t_name[t_name_length - 1])) {
-                    --t_name_length;
-                }
+                q_name_length = std::min(q_name_length, kSSS);
                 t_name_length = std::min(t_name_length, kSSS);
 
-                if (q_name_length == 0 || t_name_length == 0 ||
-                    values_length != kPafObjectLength) {
+                remove_whitespace(q_name, q_name_length);
+                remove_whitespace(t_name, t_name_length);
 
+                if (q_name_length == 0 || t_name_length == 0) {
                     fprintf(stderr, "bioparser::PafParser error: "
                         "invalid file format!\n");
                     exit(1);
@@ -720,7 +720,6 @@ bool PafParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
                 ++num_objects;
                 current_bytes = 0;
                 line_length = 0;
-                values_length = 0;
             } else {
                 line[line_length++] = c;
             }
@@ -729,5 +728,187 @@ bool PafParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
 
     return status;
 }
+
+template<class T>
+SamParser<T>::SamParser(FILE* input_file)
+        : Parser<T>(input_file, 5 * kSSS + 2 * kMSS) {
+}
+
+template<class T>
+SamParser<T>::~SamParser() {
+}
+
+template<class T>
+bool SamParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
+    uint64_t max_bytes) {
+
+    auto input_file = this->input_file_.get();
+    bool is_end = feof(input_file);
+    bool status = false;
+    uint64_t current_bytes = 0;
+    uint64_t total_bytes = 0;
+    uint64_t num_objects = 0;
+    uint64_t last_object_id = num_objects;
+
+    const uint32_t kSamObjectLength = 11;
+
+    char* line = &(this->storage_[0]);
+    uint32_t line_length = 0;
+
+    const char* q_name = nullptr, * t_name = nullptr, * cigar = nullptr,
+        * t_next_name = nullptr, * sequence = nullptr, * quality = nullptr;
+
+    uint32_t q_name_length = 0, flag = 0, t_name_length = 0, t_begin = 0,
+        mapping_quality = 0, cigar_length = 0, t_next_name_length = 0,
+        t_next_begin = 0, template_length = 0, sequence_length = 0,
+        quality_length = 0;
+
+    while (!is_end) {
+
+        uint64_t read_bytes = fread(this->buffer_.data(), sizeof(char),
+            this->buffer_.size(), input_file);
+        is_end = feof(input_file);
+
+        total_bytes += read_bytes;
+        if (max_bytes != 0 && total_bytes > max_bytes) {
+            if (last_object_id == num_objects) {
+                fprintf(stderr, "bioparser::SamParser error: "
+                    "too small chunk size!\n");
+                exit(1);
+            }
+            fseek(input_file, -(current_bytes + read_bytes), SEEK_CUR);
+            status = true;
+            break;
+        }
+
+        for (uint32_t i = 0; i < read_bytes; ++i) {
+
+            auto c = this->buffer_[i];
+            ++current_bytes;
+
+            if (c == '\n') {
+
+                if (line[0] == '@') {
+                    line_length = 0;
+                    current_bytes = 0;
+                    continue;
+                }
+
+                line[line_length] = 0;
+                remove_whitespace(line, line_length);
+
+                uint32_t num_values = 0, begin = 0;
+                while (true) {
+                    uint32_t end = begin;
+                    for (uint32_t j = begin; j < line_length; ++j) {
+                        if (line[j] == '\t') {
+                            end = j;
+                            break;
+                        }
+                    }
+                    if (end == begin) {
+                        end = line_length;
+                    }
+                    line[end] = 0;
+
+                    switch (num_values) {
+                        case 0:
+                            q_name = &line[begin];
+                            q_name_length = end - begin;
+                            break;
+                        case 1:
+                            flag = atoi(&line[begin]);
+                            break;
+                        case 2:
+                            t_name = &line[begin];
+                            t_name_length = end - begin;
+                            break;
+                        case 3:
+                            t_begin = atoi(&line[begin]);
+                            break;
+                        case 4:
+                            mapping_quality = atoi(&line[begin]);
+                            break;
+                        case 5:
+                            cigar = &line[begin];
+                            cigar_length = end - begin;
+                            break;
+                        case 6:
+                            t_next_name = &line[begin];
+                            t_next_name_length = end - begin;
+                            break;
+                        case 7:
+                            t_next_begin = atoi(&line[begin]);
+                            break;
+                        case 8:
+                            template_length = atoi(&line[begin]);
+                            break;
+                        case 9:
+                            sequence = &line[begin];
+                            sequence_length = end - begin;
+                            break;
+                        case 10:
+                        default:
+                            quality = &line[begin];
+                            quality_length = end - begin;
+                            break;
+                    }
+                    num_values++;
+                    if (end == line_length || num_values == kSamObjectLength) {
+                        break;
+                    }
+                    begin = end + 1;
+                }
+
+                if (num_values != kSamObjectLength) {
+                    fprintf(stderr, "bioparser::SamParser error: "
+                        "invalid file format!\n");
+                    exit(1);
+                }
+
+                q_name_length = std::min(q_name_length, kSSS);
+                t_name_length = std::min(t_name_length, kSSS);
+                t_next_name_length = std::min(t_next_name_length, kSSS);
+
+                remove_whitespace(q_name, q_name_length);
+                remove_whitespace(t_name, t_name_length);
+                remove_whitespace(cigar, cigar_length);
+                remove_whitespace(t_next_name, t_next_name_length);
+                remove_whitespace(sequence, sequence_length);
+                remove_whitespace(quality, quality_length);
+
+                if (q_name_length == 0 || t_name_length == 0 ||
+                    cigar_length == 0 || t_next_name_length == 0 ||
+                    sequence_length == 0 || quality_length == 0 ||
+                    (sequence_length > 1 && quality_length > 1 &&
+                    sequence_length != quality_length)) {
+
+                    fprintf(stderr, "bioparser::SamParser error: "
+                        "invalid file format!\n");
+                    exit(1);
+                }
+
+                dst.emplace_back(std::unique_ptr<T>(new T(q_name, q_name_length,
+                    flag, t_name, t_name_length, t_begin, mapping_quality,
+                    cigar, cigar_length, t_next_name, t_next_name_length,
+                    t_next_begin, template_length, sequence, sequence_length,
+                    quality, quality_length)));
+
+                ++num_objects;
+                current_bytes = 0;
+                line_length = 0;
+            } else {
+                line[line_length++] = c;
+                if (line_length == this->storage_.size()) {
+                    this->storage_.resize(5 * kSSS + 2 * kLSS);
+                    line = &(this->storage_[0]);
+                }
+            }
+        }
+    }
+
+    return status;
+}
+
 
 }
