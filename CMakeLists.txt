@@ -17,6 +17,8 @@ target_include_directories(bioparser INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>)
 
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/bioparser DESTINATION include)
+
 if (bioparser_build_tests)
     set(bioparser_test_data_path ${PROJECT_SOURCE_DIR}/test/data/)
     configure_file(
@@ -30,5 +32,3 @@ if (bioparser_build_tests)
     add_subdirectory(vendor/googletest/googletest EXCLUDE_FROM_ALL)
     target_link_libraries(bioparser_test bioparser gtest_main)
 endif(bioparser_build_tests)
-
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/bioparser DESTINATION include)
