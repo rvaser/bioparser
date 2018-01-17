@@ -88,10 +88,12 @@ mhap_parser->parse_objects(mhap_objects, -1);
 // define a class for overlaps in PAF format or add a constructor to existing overlap class
 Example3::Example3(
     const char* q_name, uint32_t q_name_length,
+    uint32_t q_length,
     uint32_t q_begin,
     uint32_t q_end,
     char orientation,
     const char* t_name, uint32_t t_name_length,
+    uint32_t t_length,
     uint32_t t_begin,
     uint32_t t_end,
     uint32_t matching_bases,
