@@ -189,7 +189,7 @@ TEST_F(BioparserFastaTest, ParseWhole) {
     reads_summary(name_size, sequence_size, quality_size, reads);
 
     EXPECT_EQ(14U, reads.size());
-    EXPECT_EQ(75U, name_size);
+    EXPECT_EQ(65U, name_size);
     EXPECT_EQ(109117U, sequence_size);
     EXPECT_EQ(0U, quality_size);
 }
@@ -207,7 +207,7 @@ TEST_F(BioparserFastaTest, ParseInChunks) {
     reads_summary(name_size, sequence_size, quality_size, reads);
 
     EXPECT_EQ(14U, reads.size());
-    EXPECT_EQ(75U, name_size);
+    EXPECT_EQ(65U, name_size);
     EXPECT_EQ(109117U, sequence_size);
     EXPECT_EQ(0U, quality_size);
 }

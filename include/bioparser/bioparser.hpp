@@ -155,9 +155,18 @@ private:
 /*!
  * @brief Implementation
  */
-void remove_whitespace(const char* src, uint32_t& src_length) {
+inline void rightStrip(const char* src, uint32_t& src_length) {
     while (src_length > 0 && isspace(src[src_length - 1])) {
         --src_length;
+    }
+}
+
+inline void rightStripHard(const char* src, uint32_t& src_length) {
+    for (uint32_t i = 0; i < src_length; ++i) {
+        if (isspace(src[i])) {
+            src_length = i;
+            break;
+        }
     }
 }
 
@@ -284,8 +293,8 @@ bool FastaParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
             ++current_bytes;
 
             if (is_valid) {
-                remove_whitespace(name, name_length);
-                remove_whitespace(sequence, sequence_length);
+                rightStripHard(name, name_length);
+                rightStrip(sequence, sequence_length);
 
                 if (name_length == 0 || name[0] != '>' || sequence_length == 0) {
                     fprintf(stderr, "bioparser::FastaParser error: "
@@ -401,9 +410,9 @@ bool FastqParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
             ++current_bytes;
 
             if (is_valid) {
-                remove_whitespace(name, name_length);
-                remove_whitespace(sequence, sequence_length);
-                remove_whitespace(quality, quality_length);
+                rightStripHard(name, name_length);
+                rightStrip(sequence, sequence_length);
+                rightStrip(quality, quality_length);
 
                 if (name_length == 0 || name[0] != '@' || sequence_length == 0 ||
                     quality_length == 0 || sequence_length != quality_length) {
@@ -487,7 +496,7 @@ bool MhapParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
             if (c == '\n') {
 
                 line[line_length] = 0;
-                remove_whitespace(line, line_length);
+                rightStrip(line, line_length);
 
                 uint32_t num_values = 0, begin = 0;
                 while (true) {
@@ -630,7 +639,7 @@ bool PafParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
             if (c == '\n') {
 
                 line[line_length] = 0;
-                remove_whitespace(line, line_length);
+                rightStrip(line, line_length);
 
                 uint32_t num_values = 0, begin = 0;
                 while (true) {
@@ -703,8 +712,8 @@ bool PafParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
                 q_name_length = std::min(q_name_length, kSSS);
                 t_name_length = std::min(t_name_length, kSSS);
 
-                remove_whitespace(q_name, q_name_length);
-                remove_whitespace(t_name, t_name_length);
+                rightStripHard(q_name, q_name_length);
+                rightStripHard(t_name, t_name_length);
 
                 if (q_name_length == 0 || t_name_length == 0) {
                     fprintf(stderr, "bioparser::PafParser error: "
@@ -795,7 +804,7 @@ bool SamParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
                 }
 
                 line[line_length] = 0;
-                remove_whitespace(line, line_length);
+                rightStrip(line, line_length);
 
                 uint32_t num_values = 0, begin = 0;
                 while (true) {
@@ -870,12 +879,12 @@ bool SamParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
                 t_name_length = std::min(t_name_length, kSSS);
                 t_next_name_length = std::min(t_next_name_length, kSSS);
 
-                remove_whitespace(q_name, q_name_length);
-                remove_whitespace(t_name, t_name_length);
-                remove_whitespace(cigar, cigar_length);
-                remove_whitespace(t_next_name, t_next_name_length);
-                remove_whitespace(sequence, sequence_length);
-                remove_whitespace(quality, quality_length);
+                rightStripHard(q_name, q_name_length);
+                rightStripHard(t_name, t_name_length);
+                rightStrip(cigar, cigar_length);
+                rightStripHard(t_next_name, t_next_name_length);
+                rightStrip(sequence, sequence_length);
+                rightStrip(quality, quality_length);
 
                 if (q_name_length == 0 || t_name_length == 0 ||
                     cigar_length == 0 || t_next_name_length == 0 ||
