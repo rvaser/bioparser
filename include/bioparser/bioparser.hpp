@@ -175,7 +175,7 @@ std::unique_ptr<Parser<T>> createParser(const std::string& path) {
 
     auto input_file = fopen(path.c_str(), "r");
     if (input_file == nullptr) {
-        fprintf(stderr, "bioparser::createParser error: "
+        fprintf(stderr, "[bioparser::createParser] error: "
             "unable to open file %s!\n", path.c_str());
         exit(1);
     }
@@ -250,7 +250,7 @@ bool FastaParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
         total_bytes += read_bytes;
         if (max_bytes != 0 && total_bytes > max_bytes) {
             if (last_object_id == num_objects) {
-                fprintf(stderr, "bioparser::FastaParser error: "
+                fprintf(stderr, "[bioparser::FastaParser] error: "
                     "too small chunk size!\n");
                 exit(1);
             }
@@ -297,7 +297,7 @@ bool FastaParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
                 rightStrip(sequence, sequence_length);
 
                 if (name_length == 0 || name[0] != '>' || sequence_length == 0) {
-                    fprintf(stderr, "bioparser::FastaParser error: "
+                    fprintf(stderr, "[bioparser::FastaParser] error: "
                         "invalid file format!\n");
                     exit(1);
                 }
@@ -359,7 +359,7 @@ bool FastqParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
         total_bytes += read_bytes;
         if (max_bytes != 0 && total_bytes > max_bytes) {
             if (last_object_id == num_objects) {
-                fprintf(stderr, "bioparser::FastqParser error: "
+                fprintf(stderr, "[bioparser::FastqParser] error: "
                     "too small chunk size!\n");
                 exit(1);
             }
@@ -416,7 +416,7 @@ bool FastqParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
 
                 if (name_length == 0 || name[0] != '@' || sequence_length == 0 ||
                     quality_length == 0 || sequence_length != quality_length) {
-                    fprintf(stderr, "bioparser::FastqParser error: "
+                    fprintf(stderr, "[bioparser::FastqParser] error: "
                         "invalid file format!\n");
                     exit(1);
                 }
@@ -479,7 +479,7 @@ bool MhapParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
         total_bytes += read_bytes;
         if (max_bytes != 0 && total_bytes > max_bytes) {
             if (last_object_id == num_objects) {
-                fprintf(stderr, "bioparser::MhapParser error: "
+                fprintf(stderr, "[bioparser::MhapParser] error: "
                     "too small chunk size!\n");
                 exit(1);
             }
@@ -559,7 +559,7 @@ bool MhapParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
                 }
 
                 if (num_values != kMhapObjectLength) {
-                    fprintf(stderr, "bioparser::MhapParser error: "
+                    fprintf(stderr, "[bioparser::MhapParser] error: "
                         "invalid file format!\n");
                     exit(1);
                 }
@@ -622,7 +622,7 @@ bool PafParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
         total_bytes += read_bytes;
         if (max_bytes != 0 && total_bytes > max_bytes) {
             if (last_object_id == num_objects) {
-                fprintf(stderr, "bioparser::PafParser error: "
+                fprintf(stderr, "[bioparser::PafParser] error: "
                     "too small chunk size!\n");
                 exit(1);
             }
@@ -704,7 +704,7 @@ bool PafParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
                 }
 
                 if (num_values != kPafObjectLength) {
-                    fprintf(stderr, "bioparser::PafParser error: "
+                    fprintf(stderr, "[bioparser::PafParser] error: "
                         "invalid file format!\n");
                     exit(1);
                 }
@@ -716,7 +716,7 @@ bool PafParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
                 rightStripHard(t_name, t_name_length);
 
                 if (q_name_length == 0 || t_name_length == 0) {
-                    fprintf(stderr, "bioparser::PafParser error: "
+                    fprintf(stderr, "[bioparser::PafParser] error: "
                         "invalid file format!\n");
                     exit(1);
                 }
@@ -781,7 +781,7 @@ bool SamParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
         total_bytes += read_bytes;
         if (max_bytes != 0 && total_bytes > max_bytes) {
             if (last_object_id == num_objects) {
-                fprintf(stderr, "bioparser::SamParser error: "
+                fprintf(stderr, "[bioparser::SamParser] error: "
                     "too small chunk size!\n");
                 exit(1);
             }
@@ -870,7 +870,7 @@ bool SamParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
                 }
 
                 if (num_values != kSamObjectLength) {
-                    fprintf(stderr, "bioparser::SamParser error: "
+                    fprintf(stderr, "[bioparser::SamParser] error: "
                         "invalid file format!\n");
                     exit(1);
                 }
@@ -892,7 +892,7 @@ bool SamParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
                     (sequence_length > 1 && quality_length > 1 &&
                     sequence_length != quality_length)) {
 
-                    fprintf(stderr, "bioparser::SamParser error: "
+                    fprintf(stderr, "[bioparser::SamParser] error: "
                         "invalid file format!\n");
                     exit(1);
                 }

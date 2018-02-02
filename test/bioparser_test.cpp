@@ -175,7 +175,7 @@ public:
 
 TEST(BioparserTest, CreateParserError) {
     EXPECT_DEATH((bioparser::createParser<bioparser::FastaParser, Read>("")),
-        "bioparser::createParser error: unable to open file");
+        ".bioparser::createParser. error: unable to open file !");
 }
 
 TEST_F(BioparserFastaTest, ParseWhole) {
@@ -218,7 +218,7 @@ TEST_F(BioparserFastaTest, FormatError) {
     std::vector<std::unique_ptr<Read>> reads;
 
     EXPECT_DEATH(parser->parse_objects(reads, -1),
-        "bioparser::FastaParser error: invalid file format!");
+        ".bioparser::FastaParser. error: invalid file format!");
 }
 
 TEST_F(BioparserFastaTest, ChunkSizeError) {
@@ -228,7 +228,7 @@ TEST_F(BioparserFastaTest, ChunkSizeError) {
     uint32_t size_in_bytes = 10 * 1024;
     std::vector<std::unique_ptr<Read>> reads;
     EXPECT_DEATH(parser->parse_objects(reads, size_in_bytes),
-        "bioparser::FastaParser error: too small chunk size!");
+        ".bioparser::FastaParser. error: too small chunk size!");
 }
 
 TEST_F(BioparserFastaTest, ParseAndReset) {
@@ -299,7 +299,7 @@ TEST_F(BioparserFastqTest, FormatError) {
     std::vector<std::unique_ptr<Read>> reads;
 
     EXPECT_DEATH(parser->parse_objects(reads, -1),
-        "bioparser::FastqParser error: invalid file format!");
+        ".bioparser::FastqParser. error: invalid file format!");
 }
 
 TEST_F(BioparserFastqTest, ChunkSizeError) {
@@ -309,7 +309,7 @@ TEST_F(BioparserFastqTest, ChunkSizeError) {
     uint32_t size_in_bytes = 10 * 1024;
     std::vector<std::unique_ptr<Read>> reads;
     EXPECT_DEATH(parser->parse_objects(reads, size_in_bytes),
-        "bioparser::FastqParser error: too small chunk size!");
+        ".bioparser::FastqParser. error: too small chunk size!");
 }
 
 TEST_F(BioparserMhapTest, ParseWhole) {
@@ -341,7 +341,7 @@ TEST_F(BioparserMhapTest, FormatError) {
     std::vector<std::unique_ptr<Overlap>> overlaps;
 
     EXPECT_DEATH(parser->parse_objects(overlaps, -1),
-        "bioparser::MhapParser error: invalid file format!");
+        ".bioparser::MhapParser. error: invalid file format!");
 }
 
 TEST_F(BioparserPafTest, ParseWhole) {
@@ -373,7 +373,7 @@ TEST_F(BioparserPafTest, FormatError) {
     std::vector<std::unique_ptr<Overlap>> overlaps;
 
     EXPECT_DEATH(parser->parse_objects(overlaps, -1),
-        "bioparser::PafParser error: invalid file format!");
+        ".bioparser::PafParser. error: invalid file format!");
 }
 
 TEST_F(BioparserSamTest, ParseWhole) {
@@ -405,5 +405,5 @@ TEST_F(BioparserSamTest, FormatError) {
     std::vector<std::unique_ptr<Alignment>> alignments;
 
     EXPECT_DEATH(parser->parse_objects(alignments, -1),
-        "bioparser::SamParser error: invalid file format!");
+        ".bioparser::SamParser. error: invalid file format!");
 }

@@ -9,7 +9,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic")
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-option(bioparser_build_tests "Build bioparser google tests" OFF)
+option(bioparser_build_tests "Build bioparser unit tests" OFF)
 
 add_library(bioparser INTERFACE)
 
@@ -21,14 +21,13 @@ install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/bioparser DESTINATION incl
 
 if (bioparser_build_tests)
     set(bioparser_test_data_path ${PROJECT_SOURCE_DIR}/test/data/)
-    configure_file(
-        "${PROJECT_SOURCE_DIR}/test/bioparser_test_config.h.in"
-        "${PROJECT_BINARY_DIR}/config/bioparser_test_config.h"
-    )
+    configure_file("${PROJECT_SOURCE_DIR}/test/bioparser_test_config.h.in"
+        "${PROJECT_BINARY_DIR}/config/bioparser_test_config.h")
     include_directories(${PROJECT_BINARY_DIR}/config)
 
     add_executable(bioparser_test test/bioparser_test.cpp)
 
     add_subdirectory(vendor/googletest/googletest EXCLUDE_FROM_ALL)
+
     target_link_libraries(bioparser_test bioparser gtest_main)
 endif(bioparser_build_tests)
