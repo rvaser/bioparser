@@ -45,7 +45,7 @@ void reads_summary(uint32_t& name_size, uint32_t& sequence_size, uint32_t& quali
 
 class Overlap {
 public:
-    Overlap(uint32_t a_id, uint32_t b_id, double error, uint32_t minmers,
+    Overlap(uint64_t a_id, uint64_t b_id, double error, uint32_t minmers,
         uint32_t a_rc, uint32_t a_begin, uint32_t a_end, uint32_t a_length,
         uint32_t b_rc, uint32_t b_begin, uint32_t b_end, uint32_t b_length)
             : a_name_(), a_id_(a_id - 1), a_begin_(a_begin), a_end_(a_end),
@@ -71,12 +71,12 @@ public:
     ~Overlap() {}
 
     std::string a_name_;
-    uint32_t a_id_;
+    uint64_t a_id_;
     uint32_t a_begin_;
     uint32_t a_end_;
     uint32_t a_length_;
     std::string b_name_;
-    uint32_t b_id_;
+    uint64_t b_id_;
     uint32_t b_begin_;
     uint32_t b_end_;
     uint32_t b_length_;

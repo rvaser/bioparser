@@ -65,8 +65,8 @@ class Example3 {
 public:
     // required signature for the constructor
     Example3(
-        uint32_t a_id,
-        uint32_t b_id,
+        uint64_t a_id,
+        uint64_t b_id,
         double eq_bases_perc,
         uint32_t minmers,
         uint32_t a_rc,

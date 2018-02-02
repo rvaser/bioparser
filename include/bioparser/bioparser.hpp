@@ -465,9 +465,9 @@ bool MhapParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
     char* line = &(this->storage_[0]);
     uint32_t line_length = 0;
 
-    uint32_t a_id = 0, a_rc = 0, a_begin = 0, a_end = 0, a_length = 0,
-        b_id = 0, b_rc = 0, b_begin = 0, b_end = 0, b_length = 0,
-        minmers = 0;
+    uint64_t a_id = 0, b_id = 0;
+    uint32_t a_rc = 0, a_begin = 0, a_end = 0, a_length = 0, b_rc = 0,
+        b_begin = 0, b_end = 0, b_length = 0, minmers = 0;
     double error = 0;
 
     while (!is_end) {
@@ -514,10 +514,10 @@ bool MhapParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
 
                     switch (num_values) {
                         case 0:
-                            a_id = atoi(&line[begin]);
+                            a_id = atoll(&line[begin]);
                             break;
                         case 1:
-                            b_id = atoi(&line[begin]);
+                            b_id = atoll(&line[begin]);
                             break;
                         case 2:
                             error = atof(&line[begin]);
