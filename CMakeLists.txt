@@ -21,8 +21,8 @@ install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/bioparser DESTINATION incl
 
 if (bioparser_build_tests)
     set(bioparser_test_data_path ${PROJECT_SOURCE_DIR}/test/data/)
-    configure_file("${PROJECT_SOURCE_DIR}/test/bioparser_test_config.h.in"
-        "${PROJECT_BINARY_DIR}/config/bioparser_test_config.h")
+    configure_file(${PROJECT_SOURCE_DIR}/test/bioparser_test_config.h.in
+        ${PROJECT_BINARY_DIR}/config/bioparser_test_config.h)
     include_directories(${PROJECT_BINARY_DIR}/config)
 
     add_executable(bioparser_test test/bioparser_test.cpp)
