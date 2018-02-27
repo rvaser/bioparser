@@ -12,6 +12,8 @@
 #include <string>
 #include <vector>
 
+#include "zlib.h"
+
 namespace bioparser {
 
 constexpr uint32_t kBufferSize = 64 * 1024;
@@ -63,11 +65,11 @@ public:
 
     bool parse_objects(std::vector<std::shared_ptr<T>>& dst, uint64_t max_bytes);
 protected:
-    Parser(FILE* input_file, uint32_t storage_size);
+    Parser(gzFile input_file, uint32_t storage_size);
     Parser(const Parser&) = delete;
     const Parser& operator=(const Parser&) = delete;
 
-    std::unique_ptr<FILE, int(*)(FILE*)> input_file_;
+    std::unique_ptr<gzFile_s, int(*)(gzFile)> input_file_;
     std::vector<char> buffer_;
     std::vector<char> storage_;
 };
@@ -83,7 +85,7 @@ public:
     friend std::unique_ptr<Parser<T>>
         createParser<bioparser::FastaParser, T>(const std::string& path);
 private:
-    FastaParser(FILE* input_file);
+    FastaParser(gzFile input_file);
     FastaParser(const FastaParser&) = delete;
     const FastaParser& operator=(const FastaParser&) = delete;
 };
@@ -99,7 +101,7 @@ public:
     friend std::unique_ptr<Parser<T>>
         createParser<bioparser::FastqParser, T>(const std::string& path);
 private:
-    FastqParser(FILE* input_file);
+    FastqParser(gzFile input_file);
     FastqParser(const FastqParser&) = delete;
     const FastqParser& operator=(const FastqParser&) = delete;
 };
@@ -115,7 +117,7 @@ public:
     friend std::unique_ptr<Parser<T>>
         createParser<bioparser::MhapParser, T>(const std::string& path);
 private:
-    MhapParser(FILE* input_file);
+    MhapParser(gzFile input_file);
     MhapParser(const MhapParser&) = delete;
     const MhapParser& operator=(const MhapParser&) = delete;
 };
@@ -131,7 +133,7 @@ public:
     friend std::unique_ptr<Parser<T>>
         createParser<bioparser::PafParser, T>(const std::string& path);
 private:
-    PafParser(FILE* input_file);
+    PafParser(gzFile input_file);
     PafParser(const PafParser&) = delete;
     const PafParser& operator=(const PafParser&) = delete;
 };
@@ -147,7 +149,7 @@ public:
     friend std::unique_ptr<Parser<T>>
         createParser<bioparser::SamParser, T>(const std::string& path);
 private:
-    SamParser(FILE* input_file);
+    SamParser(gzFile input_file);
     SamParser(const SamParser&) = delete;
     const SamParser& operator=(const SamParser&) = delete;
 };
@@ -173,7 +175,7 @@ inline void rightStripHard(const char* src, uint32_t& src_length) {
 template<template<class> class P, class T>
 std::unique_ptr<Parser<T>> createParser(const std::string& path) {
 
-    auto input_file = fopen(path.c_str(), "r");
+    auto input_file = gzopen(path.c_str(), "r");
     if (input_file == nullptr) {
         fprintf(stderr, "[bioparser::createParser] error: "
             "unable to open file %s!\n", path.c_str());
@@ -184,8 +186,8 @@ std::unique_ptr<Parser<T>> createParser(const std::string& path) {
 }
 
 template<class T>
-Parser<T>::Parser(FILE* input_file, uint32_t storage_size)
-        : input_file_(input_file, fclose), buffer_(kBufferSize, 0),
+Parser<T>::Parser(gzFile input_file, uint32_t storage_size)
+        : input_file_(input_file, gzclose), buffer_(kBufferSize, 0),
         storage_(storage_size, 0) {
 }
 
@@ -195,7 +197,7 @@ Parser<T>::~Parser() {
 
 template<class T>
 void Parser<T>::reset() {
-    fseek(this->input_file_.get(), 0, SEEK_SET);
+    gzseek(this->input_file_.get(), 0, SEEK_SET);
 }
 
 template<class T>
@@ -213,7 +215,7 @@ bool Parser<T>::parse_objects(std::vector<std::shared_ptr<T>>& dst,
 }
 
 template<class T>
-FastaParser<T>::FastaParser(FILE* input_file)
+FastaParser<T>::FastaParser(gzFile input_file)
         : Parser<T>(input_file, kSSS + kMSS) {
 }
 
@@ -226,7 +228,7 @@ bool FastaParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
     uint64_t max_bytes) {
 
     auto input_file = this->input_file_.get();
-    bool is_end = feof(input_file);
+    bool is_end = gzeof(input_file);
     bool is_valid = false;
     bool status = false;
     uint64_t current_bytes = 0;
@@ -243,9 +245,9 @@ bool FastaParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
 
     while (!is_end) {
 
-        uint64_t read_bytes = fread(this->buffer_.data(), sizeof(char),
+        uint64_t read_bytes = gzfread(this->buffer_.data(), sizeof(char),
             this->buffer_.size(), input_file);
-        is_end = feof(input_file);
+        is_end = gzeof(input_file);
 
         total_bytes += read_bytes;
         if (max_bytes != 0 && total_bytes > max_bytes) {
@@ -254,7 +256,7 @@ bool FastaParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
                     "too small chunk size!\n");
                 exit(1);
             }
-            fseek(input_file, -(current_bytes + read_bytes), SEEK_CUR);
+            gzseek(input_file, -(current_bytes + read_bytes), SEEK_CUR);
             status = true;
             break;
         }
@@ -319,7 +321,7 @@ bool FastaParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
 }
 
 template<class T>
-FastqParser<T>::FastqParser(FILE* input_file)
+FastqParser<T>::FastqParser(gzFile input_file)
         : Parser<T>(input_file, kSSS + 2 * kMSS) {
 }
 
@@ -332,7 +334,7 @@ bool FastqParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
     uint64_t max_bytes) {
 
     auto input_file = this->input_file_.get();
-    bool is_end = feof(input_file);
+    bool is_end = gzeof(input_file);
     bool is_valid = false;
     bool status = false;
     uint64_t current_bytes = 0;
@@ -352,9 +354,9 @@ bool FastqParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
 
     while (!is_end) {
 
-        uint64_t read_bytes = fread(this->buffer_.data(), sizeof(char),
+        uint64_t read_bytes = gzfread(this->buffer_.data(), sizeof(char),
             this->buffer_.size(), input_file);
-        is_end = feof(input_file);
+        is_end = gzeof(input_file);
 
         total_bytes += read_bytes;
         if (max_bytes != 0 && total_bytes > max_bytes) {
@@ -363,7 +365,7 @@ bool FastqParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
                     "too small chunk size!\n");
                 exit(1);
             }
-            fseek(input_file, -(current_bytes + read_bytes), SEEK_CUR);
+            gzseek(input_file, -(current_bytes + read_bytes), SEEK_CUR);
             status = true;
             break;
         }
@@ -440,7 +442,7 @@ bool FastqParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
 }
 
 template<class T>
-MhapParser<T>::MhapParser(FILE* input_file)
+MhapParser<T>::MhapParser(gzFile input_file)
         : Parser<T>(input_file, kSSS) {
 }
 
@@ -453,7 +455,7 @@ bool MhapParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
     uint64_t max_bytes) {
 
     auto input_file = this->input_file_.get();
-    bool is_end = feof(input_file);
+    bool is_end = gzeof(input_file);
     bool status = false;
     uint64_t current_bytes = 0;
     uint64_t total_bytes = 0;
@@ -472,9 +474,9 @@ bool MhapParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
 
     while (!is_end) {
 
-        uint64_t read_bytes = fread(this->buffer_.data(), sizeof(char),
+        uint64_t read_bytes = gzfread(this->buffer_.data(), sizeof(char),
             this->buffer_.size(), input_file);
-        is_end = feof(input_file);
+        is_end = gzeof(input_file);
 
         total_bytes += read_bytes;
         if (max_bytes != 0 && total_bytes > max_bytes) {
@@ -483,7 +485,7 @@ bool MhapParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
                     "too small chunk size!\n");
                 exit(1);
             }
-            fseek(input_file, -(current_bytes + read_bytes), SEEK_CUR);
+            gzseek(input_file, -(current_bytes + read_bytes), SEEK_CUR);
             status = true;
             break;
         }
@@ -581,7 +583,7 @@ bool MhapParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
 }
 
 template<class T>
-PafParser<T>::PafParser(FILE* input_file)
+PafParser<T>::PafParser(gzFile input_file)
         : Parser<T>(input_file, 3 * kSSS) {
 }
 
@@ -594,7 +596,7 @@ bool PafParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
     uint64_t max_bytes) {
 
     auto input_file = this->input_file_.get();
-    bool is_end = feof(input_file);
+    bool is_end = gzeof(input_file);
     bool status = false;
     uint64_t current_bytes = 0;
     uint64_t total_bytes = 0;
@@ -615,9 +617,9 @@ bool PafParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
 
     while (!is_end) {
 
-        uint64_t read_bytes = fread(this->buffer_.data(), sizeof(char),
+        uint64_t read_bytes = gzfread(this->buffer_.data(), sizeof(char),
             this->buffer_.size(), input_file);
-        is_end = feof(input_file);
+        is_end = gzeof(input_file);
 
         total_bytes += read_bytes;
         if (max_bytes != 0 && total_bytes > max_bytes) {
@@ -626,7 +628,7 @@ bool PafParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
                     "too small chunk size!\n");
                 exit(1);
             }
-            fseek(input_file, -(current_bytes + read_bytes), SEEK_CUR);
+            gzseek(input_file, -(current_bytes + read_bytes), SEEK_CUR);
             status = true;
             break;
         }
@@ -739,7 +741,7 @@ bool PafParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
 }
 
 template<class T>
-SamParser<T>::SamParser(FILE* input_file)
+SamParser<T>::SamParser(gzFile input_file)
         : Parser<T>(input_file, 5 * kSSS + 2 * kMSS) {
 }
 
@@ -752,7 +754,7 @@ bool SamParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
     uint64_t max_bytes) {
 
     auto input_file = this->input_file_.get();
-    bool is_end = feof(input_file);
+    bool is_end = gzeof(input_file);
     bool status = false;
     uint64_t current_bytes = 0;
     uint64_t total_bytes = 0;
@@ -774,9 +776,9 @@ bool SamParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
 
     while (!is_end) {
 
-        uint64_t read_bytes = fread(this->buffer_.data(), sizeof(char),
+        uint64_t read_bytes = gzfread(this->buffer_.data(), sizeof(char),
             this->buffer_.size(), input_file);
-        is_end = feof(input_file);
+        is_end = gzeof(input_file);
 
         total_bytes += read_bytes;
         if (max_bytes != 0 && total_bytes > max_bytes) {
@@ -785,7 +787,7 @@ bool SamParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
                     "too small chunk size!\n");
                 exit(1);
             }
-            fseek(input_file, -(current_bytes + read_bytes), SEEK_CUR);
+            gzseek(input_file, -(current_bytes + read_bytes), SEEK_CUR);
             status = true;
             break;
         }

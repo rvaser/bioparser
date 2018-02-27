@@ -13,6 +13,14 @@ option(bioparser_build_tests "Build bioparser unit tests" OFF)
 
 add_library(bioparser INTERFACE)
 
+if (NOT TARGET zlibstatic)
+    include_directories(BEFORE vendor/zlib)
+    include_directories(BEFORE ${PROJECT_BINARY_DIR}/zlib_build)
+    add_subdirectory(vendor/zlib ${PROJECT_BINARY_DIR}/zlib_build EXCLUDE_FROM_ALL)
+endif()
+
+target_link_libraries(bioparser INTERFACE zlibstatic)
+
 target_include_directories(bioparser INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>)

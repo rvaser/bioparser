@@ -48,21 +48,21 @@ public:
     Overlap(uint64_t a_id, uint64_t b_id, double error, uint32_t minmers,
         uint32_t a_rc, uint32_t a_begin, uint32_t a_end, uint32_t a_length,
         uint32_t b_rc, uint32_t b_begin, uint32_t b_end, uint32_t b_length)
-            : a_name_(), a_id_(a_id - 1), a_begin_(a_begin), a_end_(a_end),
-            a_length_(a_length), b_name_(), b_id_(b_id - 1), b_begin_(b_begin),
-            b_end_(b_end), b_length_(b_length), orientation_(a_rc == b_rc ? '+' : '-'),
-            error_(error), minmers_(minmers), matching_bases_(), overlap_length_(),
+            : q_name_(), q_id_(a_id - 1), q_begin_(a_begin), q_end_(a_end),
+            q_length_(a_length), t_name_(), t_id_(b_id - 1), t_begin_(b_begin),
+            t_end_(b_end), t_length_(b_length), orientation_(a_rc == b_rc ? '+' : '-'),
+            error_(error * 10000), minmers_(minmers), matching_bases_(), overlap_length_(),
             mapping_quality_() {
     }
 
-    Overlap(const char* a_name, uint32_t a_name_length, uint32_t a_length,
-        uint32_t a_begin, uint32_t a_end, char orientation, const char* b_name,
-        uint32_t b_name_length, uint32_t b_length, uint32_t b_begin,
-        uint32_t b_end, uint32_t matching_bases, uint32_t overlap_length,
+    Overlap(const char* q_name, uint32_t q_name_length, uint32_t q_length,
+        uint32_t q_begin, uint32_t q_end, char orientation, const char* t_name,
+        uint32_t t_name_length, uint32_t t_length, uint32_t t_begin,
+        uint32_t t_end, uint32_t matching_bases, uint32_t overlap_length,
         uint32_t quality)
-            : a_name_(a_name, a_name_length), a_id_(), a_begin_(a_begin),
-            a_end_(a_end), a_length_(a_length), b_name_(b_name, b_name_length),
-            b_id_(), b_begin_(b_begin), b_end_(b_end), b_length_(b_length),
+            : q_name_(q_name, q_name_length), q_id_(), q_begin_(q_begin),
+            q_end_(q_end), q_length_(q_length), t_name_(t_name, t_name_length),
+            t_id_(), t_begin_(t_begin), t_end_(t_end), t_length_(t_length),
             orientation_(orientation), error_(), minmers_(),
             matching_bases_(matching_bases), overlap_length_(overlap_length),
             mapping_quality_(quality) {
@@ -70,16 +70,16 @@ public:
 
     ~Overlap() {}
 
-    std::string a_name_;
-    uint64_t a_id_;
-    uint32_t a_begin_;
-    uint32_t a_end_;
-    uint32_t a_length_;
-    std::string b_name_;
-    uint64_t b_id_;
-    uint32_t b_begin_;
-    uint32_t b_end_;
-    uint32_t b_length_;
+    std::string q_name_;
+    uint64_t q_id_;
+    uint32_t q_begin_;
+    uint32_t q_end_;
+    uint32_t q_length_;
+    std::string t_name_;
+    uint64_t t_id_;
+    uint32_t t_begin_;
+    uint32_t t_end_;
+    uint32_t t_length_;
     char orientation_;
     uint32_t error_;
     uint32_t minmers_;
@@ -87,6 +87,31 @@ public:
     uint32_t overlap_length_;
     uint32_t mapping_quality_;
 };
+
+void overlaps_summary(uint32_t& name_size, uint32_t& total_value,
+    const std::vector<std::unique_ptr<Overlap>>& overlaps) {
+
+    name_size = 0;
+    total_value = 0;
+    for (const auto& it: overlaps) {
+        name_size += it->q_name_.size();
+        name_size += it->t_name_.size();
+        total_value += it->q_id_;
+        total_value += it->q_begin_;
+        total_value += it->q_end_;
+        total_value += it->q_length_;
+        total_value += it->t_id_;
+        total_value += it->t_begin_;
+        total_value += it->t_end_;
+        total_value += it->t_length_;
+        total_value += it->orientation_;
+        total_value += it->error_;
+        total_value += it->minmers_;
+        total_value += it->matching_bases_;
+        total_value += it->overlap_length_;
+        total_value += it->mapping_quality_;
+    }
+}
 
 class Alignment {
 public:
@@ -117,6 +142,26 @@ public:
     std::string sequence_;
     std::string quality_;
 };
+
+void alignments_summary(uint32_t& string_size, uint32_t& total_value,
+    const std::vector<std::unique_ptr<Alignment>>& alignments) {
+
+    string_size = 0;
+    total_value = 0;
+    for (const auto& it: alignments) {
+        string_size += it->q_name_.size();
+        string_size += it->t_name_.size();
+        string_size += it->cigar_.size();
+        string_size += it->t_next_name_.size();
+        string_size += it->sequence_.size();
+        string_size += it->quality_.size();
+        total_value += it->flag_;
+        total_value += it->t_begin_;
+        total_value += it->mapping_quality_;
+        total_value += it->t_next_begin_;
+        total_value += it->template_length_;
+    }
+}
 
 class BioparserFastaTest: public ::testing::Test {
 public:
@@ -194,9 +239,43 @@ TEST_F(BioparserFastaTest, ParseWhole) {
     EXPECT_EQ(0U, quality_size);
 }
 
+TEST_F(BioparserFastaTest, CompressedParseWhole) {
+
+    SetUp(bioparser_test_data_path + "sample.fasta.gz");
+
+    std::vector<std::unique_ptr<Read>> reads;
+    parser->parse_objects(reads, -1);
+
+    uint32_t name_size = 0, sequence_size = 0, quality_size = 0;
+    reads_summary(name_size, sequence_size, quality_size, reads);
+
+    EXPECT_EQ(14U, reads.size());
+    EXPECT_EQ(65U, name_size);
+    EXPECT_EQ(109117U, sequence_size);
+    EXPECT_EQ(0U, quality_size);
+}
+
 TEST_F(BioparserFastaTest, ParseInChunks) {
 
     SetUp(bioparser_test_data_path + "sample.fasta");
+
+    uint32_t size_in_bytes = 64 * 1024;
+    std::vector<std::unique_ptr<Read>> reads;
+    while (parser->parse_objects(reads, size_in_bytes)) {
+    }
+
+    uint32_t name_size = 0, sequence_size = 0, quality_size = 0;
+    reads_summary(name_size, sequence_size, quality_size, reads);
+
+    EXPECT_EQ(14U, reads.size());
+    EXPECT_EQ(65U, name_size);
+    EXPECT_EQ(109117U, sequence_size);
+    EXPECT_EQ(0U, quality_size);
+}
+
+TEST_F(BioparserFastaTest, CompressedParseInChunks) {
+
+    SetUp(bioparser_test_data_path + "sample.fasta.gz");
 
     uint32_t size_in_bytes = 64 * 1024;
     std::vector<std::unique_ptr<Read>> reads;
@@ -221,6 +300,15 @@ TEST_F(BioparserFastaTest, FormatError) {
         ".bioparser::FastaParser. error: invalid file format!");
 }
 
+TEST_F(BioparserFastaTest, CompressedFormatError) {
+
+    SetUp(bioparser_test_data_path + "sample.fastq.gz");
+    std::vector<std::unique_ptr<Read>> reads;
+
+    EXPECT_DEATH(parser->parse_objects(reads, -1),
+        ".bioparser::FastaParser. error: invalid file format!");
+}
+
 TEST_F(BioparserFastaTest, ChunkSizeError) {
 
     SetUp(bioparser_test_data_path + "sample.fasta");
@@ -231,9 +319,46 @@ TEST_F(BioparserFastaTest, ChunkSizeError) {
         ".bioparser::FastaParser. error: too small chunk size!");
 }
 
+TEST_F(BioparserFastaTest, CompressedChunkSizeError) {
+
+    SetUp(bioparser_test_data_path + "sample.fasta.gz");
+
+    uint32_t size_in_bytes = 10 * 1024;
+    std::vector<std::unique_ptr<Read>> reads;
+    EXPECT_DEATH(parser->parse_objects(reads, size_in_bytes),
+        ".bioparser::FastaParser. error: too small chunk size!");
+}
+
 TEST_F(BioparserFastaTest, ParseAndReset) {
 
     SetUp(bioparser_test_data_path + "sample.fasta");
+
+    std::vector<std::unique_ptr<Read>> reads;
+    parser->parse_objects(reads, -1);
+
+    uint32_t num_reads = reads.size(), name_size = 0, sequence_size = 0,
+        quality_size = 0;
+    reads_summary(name_size, sequence_size, quality_size, reads);
+
+    uint32_t size_in_bytes = 64 * 1024;
+    reads.clear();
+    parser->reset();
+    while (parser->parse_objects(reads, size_in_bytes)) {
+    }
+
+    uint32_t num_reads_new = reads.size(), name_size_new = 0,
+        sequence_size_new = 0, quality_size_new = 0;
+    reads_summary(name_size_new, sequence_size_new, quality_size_new, reads);
+
+    EXPECT_EQ(num_reads_new, num_reads);
+    EXPECT_EQ(name_size_new, name_size);
+    EXPECT_EQ(sequence_size_new, sequence_size);
+    EXPECT_EQ(quality_size_new, quality_size);
+}
+
+TEST_F(BioparserFastaTest, CompressedParseAndReset) {
+
+    SetUp(bioparser_test_data_path + "sample.fasta.gz");
 
     std::vector<std::unique_ptr<Read>> reads;
     parser->parse_objects(reads, -1);
@@ -274,9 +399,43 @@ TEST_F(BioparserFastqTest, ParseWhole) {
     EXPECT_EQ(108140U, quality_size);
 }
 
+TEST_F(BioparserFastqTest, CompressedParseWhole) {
+
+    SetUp(bioparser_test_data_path + "sample.fastq.gz");
+
+    std::vector<std::unique_ptr<Read>> reads;
+    parser->parse_objects(reads, -1);
+
+    uint32_t name_size = 0, sequence_size = 0, quality_size = 0;
+    reads_summary(name_size, sequence_size, quality_size, reads);
+
+    EXPECT_EQ(13U, reads.size());
+    EXPECT_EQ(17U, name_size);
+    EXPECT_EQ(108140U, sequence_size);
+    EXPECT_EQ(108140U, quality_size);
+}
+
 TEST_F(BioparserFastqTest, ParseInChunks) {
 
     SetUp(bioparser_test_data_path + "sample.fastq");
+
+    uint32_t size_in_bytes = 64 * 1024;
+    std::vector<std::unique_ptr<Read>> reads;
+    while (parser->parse_objects(reads, size_in_bytes)) {
+    }
+
+    uint32_t name_size = 0, sequence_size = 0, quality_size = 0;
+    reads_summary(name_size, sequence_size, quality_size, reads);
+
+    EXPECT_EQ(13U, reads.size());
+    EXPECT_EQ(17U, name_size);
+    EXPECT_EQ(108140U, sequence_size);
+    EXPECT_EQ(108140U, quality_size);
+}
+
+TEST_F(BioparserFastqTest, CompressedParseInChunks) {
+
+    SetUp(bioparser_test_data_path + "sample.fastq.gz");
 
     uint32_t size_in_bytes = 64 * 1024;
     std::vector<std::unique_ptr<Read>> reads;
@@ -302,9 +461,29 @@ TEST_F(BioparserFastqTest, FormatError) {
         ".bioparser::FastqParser. error: invalid file format!");
 }
 
+TEST_F(BioparserFastqTest, CompressedFormatError) {
+
+    SetUp(bioparser_test_data_path + "sample.fasta.gz");
+
+    std::vector<std::unique_ptr<Read>> reads;
+
+    EXPECT_DEATH(parser->parse_objects(reads, -1),
+        ".bioparser::FastqParser. error: invalid file format!");
+}
+
 TEST_F(BioparserFastqTest, ChunkSizeError) {
 
     SetUp(bioparser_test_data_path + "sample.fastq");
+
+    uint32_t size_in_bytes = 10 * 1024;
+    std::vector<std::unique_ptr<Read>> reads;
+    EXPECT_DEATH(parser->parse_objects(reads, size_in_bytes),
+        ".bioparser::FastqParser. error: too small chunk size!");
+}
+
+TEST_F(BioparserFastqTest, CompressedChunkSizeError) {
+
+    SetUp(bioparser_test_data_path + "sample.fastq.gz");
 
     uint32_t size_in_bytes = 10 * 1024;
     std::vector<std::unique_ptr<Read>> reads;
@@ -319,7 +498,27 @@ TEST_F(BioparserMhapTest, ParseWhole) {
     std::vector<std::unique_ptr<Overlap>> overlaps;
     parser->parse_objects(overlaps, -1);
 
+    uint32_t name_size = 0, total_value = 0;
+    overlaps_summary(name_size, total_value, overlaps);
+
     EXPECT_EQ(150U, overlaps.size());
+    EXPECT_EQ(0U, name_size);
+    EXPECT_EQ(7822873U, total_value);
+}
+
+TEST_F(BioparserMhapTest, CompressedParseWhole) {
+
+    SetUp(bioparser_test_data_path + "sample.mhap.gz");
+
+    std::vector<std::unique_ptr<Overlap>> overlaps;
+    parser->parse_objects(overlaps, -1);
+
+    uint32_t name_size = 0, total_value = 0;
+    overlaps_summary(name_size, total_value, overlaps);
+
+    EXPECT_EQ(150U, overlaps.size());
+    EXPECT_EQ(0U, name_size);
+    EXPECT_EQ(7822873U, total_value);
 }
 
 TEST_F(BioparserMhapTest, ParseInChunks) {
@@ -331,12 +530,44 @@ TEST_F(BioparserMhapTest, ParseInChunks) {
     while (parser->parse_objects(overlaps, size_in_bytes)) {
     }
 
+    uint32_t name_size = 0, total_value = 0;
+    overlaps_summary(name_size, total_value, overlaps);
+
     EXPECT_EQ(150U, overlaps.size());
+    EXPECT_EQ(0U, name_size);
+    EXPECT_EQ(7822873U, total_value);
+}
+
+TEST_F(BioparserMhapTest, CompressedParseInChunks) {
+
+    SetUp(bioparser_test_data_path + "sample.mhap.gz");
+
+    uint32_t size_in_bytes = 64 * 1024;
+    std::vector<std::unique_ptr<Overlap>> overlaps;
+    while (parser->parse_objects(overlaps, size_in_bytes)) {
+    }
+
+    uint32_t name_size = 0, total_value = 0;
+    overlaps_summary(name_size, total_value, overlaps);
+
+    EXPECT_EQ(150U, overlaps.size());
+    EXPECT_EQ(0U, name_size);
+    EXPECT_EQ(7822873U, total_value);
 }
 
 TEST_F(BioparserMhapTest, FormatError) {
 
     SetUp(bioparser_test_data_path + "sample.paf");
+
+    std::vector<std::unique_ptr<Overlap>> overlaps;
+
+    EXPECT_DEATH(parser->parse_objects(overlaps, -1),
+        ".bioparser::MhapParser. error: invalid file format!");
+}
+
+TEST_F(BioparserMhapTest, CompressedFormatError) {
+
+    SetUp(bioparser_test_data_path + "sample.paf.gz");
 
     std::vector<std::unique_ptr<Overlap>> overlaps;
 
@@ -351,7 +582,27 @@ TEST_F(BioparserPafTest, ParseWhole) {
     std::vector<std::unique_ptr<Overlap>> overlaps;
     parser->parse_objects(overlaps, -1);
 
+    uint32_t name_size = 0, total_value = 0;
+    overlaps_summary(name_size, total_value, overlaps);
+
     EXPECT_EQ(500U, overlaps.size());
+    EXPECT_EQ(96478U, name_size);
+    EXPECT_EQ(18494208U, total_value);
+}
+
+TEST_F(BioparserPafTest, CompressedParseWhole) {
+
+    SetUp(bioparser_test_data_path + "sample.paf.gz");
+
+    std::vector<std::unique_ptr<Overlap>> overlaps;
+    parser->parse_objects(overlaps, -1);
+
+    uint32_t name_size = 0, total_value = 0;
+    overlaps_summary(name_size, total_value, overlaps);
+
+    EXPECT_EQ(500U, overlaps.size());
+    EXPECT_EQ(96478U, name_size);
+    EXPECT_EQ(18494208U, total_value);
 }
 
 TEST_F(BioparserPafTest, ParseInChunks) {
@@ -363,12 +614,44 @@ TEST_F(BioparserPafTest, ParseInChunks) {
     while (parser->parse_objects(overlaps, size_in_bytes)) {
     }
 
+    uint32_t name_size = 0, total_value = 0;
+    overlaps_summary(name_size, total_value, overlaps);
+
     EXPECT_EQ(500U, overlaps.size());
+    EXPECT_EQ(96478U, name_size);
+    EXPECT_EQ(18494208U, total_value);
+}
+
+TEST_F(BioparserPafTest, CompressedParseInChunks) {
+
+    SetUp(bioparser_test_data_path + "sample.paf.gz");
+
+    uint32_t size_in_bytes = 64 * 1024;
+    std::vector<std::unique_ptr<Overlap>> overlaps;
+    while (parser->parse_objects(overlaps, size_in_bytes)) {
+    }
+
+    uint32_t name_size = 0, total_value = 0;
+    overlaps_summary(name_size, total_value, overlaps);
+
+    EXPECT_EQ(500U, overlaps.size());
+    EXPECT_EQ(96478U, name_size);
+    EXPECT_EQ(18494208U, total_value);
 }
 
 TEST_F(BioparserPafTest, FormatError) {
 
     SetUp(bioparser_test_data_path + "sample.mhap");
+
+    std::vector<std::unique_ptr<Overlap>> overlaps;
+
+    EXPECT_DEATH(parser->parse_objects(overlaps, -1),
+        ".bioparser::PafParser. error: invalid file format!");
+}
+
+TEST_F(BioparserPafTest, CompressedFormatError) {
+
+    SetUp(bioparser_test_data_path + "sample.mhap.gz");
 
     std::vector<std::unique_ptr<Overlap>> overlaps;
 
@@ -383,7 +666,27 @@ TEST_F(BioparserSamTest, ParseWhole) {
     std::vector<std::unique_ptr<Alignment>> alignments;
     parser->parse_objects(alignments, -1);
 
+    uint32_t string_size = 0, total_value = 0;
+    alignments_summary(string_size, total_value, alignments);
+
     EXPECT_EQ(48U, alignments.size());
+    EXPECT_EQ(795237U, string_size);
+    EXPECT_EQ(639677U, total_value);
+}
+
+TEST_F(BioparserSamTest, CompressedParseWhole) {
+
+    SetUp(bioparser_test_data_path + "sample.sam.gz");
+
+    std::vector<std::unique_ptr<Alignment>> alignments;
+    parser->parse_objects(alignments, -1);
+
+    uint32_t string_size = 0, total_value = 0;
+    alignments_summary(string_size, total_value, alignments);
+
+    EXPECT_EQ(48U, alignments.size());
+    EXPECT_EQ(795237U, string_size);
+    EXPECT_EQ(639677U, total_value);
 }
 
 TEST_F(BioparserSamTest, ParseInChunks) {
@@ -395,12 +698,44 @@ TEST_F(BioparserSamTest, ParseInChunks) {
     while (parser->parse_objects(alignments, size_in_bytes)) {
     }
 
+    uint32_t string_size = 0, total_value = 0;
+    alignments_summary(string_size, total_value, alignments);
+
     EXPECT_EQ(48U, alignments.size());
+    EXPECT_EQ(795237U, string_size);
+    EXPECT_EQ(639677U, total_value);
+}
+
+TEST_F(BioparserSamTest, CompressedParseInChunks) {
+
+    SetUp(bioparser_test_data_path + "sample.sam.gz");
+
+    uint32_t size_in_bytes = 64 * 1024;
+    std::vector<std::unique_ptr<Alignment>> alignments;
+    while (parser->parse_objects(alignments, size_in_bytes)) {
+    }
+
+    uint32_t string_size = 0, total_value = 0;
+    alignments_summary(string_size, total_value, alignments);
+
+    EXPECT_EQ(48U, alignments.size());
+    EXPECT_EQ(795237U, string_size);
+    EXPECT_EQ(639677U, total_value);
 }
 
 TEST_F(BioparserSamTest, FormatError) {
 
     SetUp(bioparser_test_data_path + "sample.paf");
+
+    std::vector<std::unique_ptr<Alignment>> alignments;
+
+    EXPECT_DEATH(parser->parse_objects(alignments, -1),
+        ".bioparser::SamParser. error: invalid file format!");
+}
+
+TEST_F(BioparserSamTest, CompressedFormatError) {
+
+    SetUp(bioparser_test_data_path + "sample.paf.gz");
 
     std::vector<std::unique_ptr<Alignment>> alignments;
 
