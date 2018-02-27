@@ -2,7 +2,7 @@
 
 ![image](https://travis-ci.org/rvaser/bioparser.svg?branch=master)
 
-Bioparser is a c++ implementation of parsers for several bioinformatics formats. It consists of only one header file containing template parsers for FASTA, FASTQ, MHAP, PAF and SAM format.
+Bioparser is a c++ implementation of parsers for several bioinformatics formats. It consists of only one header file containing template parsers for FASTA, FASTQ, MHAP, PAF and SAM format. It also supports compressed files with gzip.
 
 ## Dependencies
 
