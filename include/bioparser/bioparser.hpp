@@ -374,10 +374,14 @@ bool FastqParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
             auto c = this->buffer_[i];
 
             if (c == '\n') {
-                line_number = (line_number + 1) % 4;
+                if (!(line_number == 1 || (line_number == 3 && quality_length < sequence_length))) {
+                    line_number = (line_number + 1) % 4;
+                }
                 if (line_number == 0 || (is_end && i == read_bytes - 1)) {
                     is_valid = true;
                 }
+            } else if (line_number == 1 && c == '+') {
+                line_number = 2;
             } else {
                 switch (line_number) {
                     case 0:
