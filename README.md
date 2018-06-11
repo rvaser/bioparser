@@ -6,13 +6,22 @@
 Bioparser is a c++ implementation of parsers for several bioinformatics formats. It consists of only one header file containing template parsers for FASTA, FASTQ, MHAP, PAF and SAM format. It also supports compressed files with gzip.
 
 ## Dependencies
-
-### Linux
-
-Application uses following software:
-
 1. gcc 4.8+ or clang 3.4+
 2. (optional) cmake 3.2+
+
+## Installation
+To build Bioparser run the following commands:
+
+```bash
+git clone --recursive https://github.com/rvaser/bioparser.git bioparser
+cd racon
+mkdir build
+cd build
+cmake -DCMAKE_BUILD_TYPE=Release ..
+make
+```
+
+To build unit tests add `-Dbioparser_build_tests=ON` while running `cmake`. After installation, an executable named `bioparser_test` will be created in `build/bin`.
 
 ## Usage
 
