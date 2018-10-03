@@ -10,22 +10,22 @@ Bioparser is a c++ implementation of parsers for several bioinformatics formats.
 2. (optional) cmake 3.2+
 
 ## Installation
-To build Bioparser run the following commands:
+To build Bioparser unit tests run the following commands:
 
 ```bash
 git clone --recursive https://github.com/rvaser/bioparser.git bioparser
-cd racon
+cd bioparser
 mkdir build
 cd build
-cmake -DCMAKE_BUILD_TYPE=Release ..
+cmake -Dbioparser_build_tests=ON -DCMAKE_BUILD_TYPE=Release ..
 make
 ```
 
-To build unit tests add `-Dbioparser_build_tests=ON` while running `cmake`. After installation, an executable named `bioparser_test` will be created in `build/bin`.
+After installation, an executable named `bioparser_test` will be created in `build/bin`.
 
 ## Usage
 
-If you would like to add bioparser to your project, add the following commands to your CMakeLists.txt file: `add_subdirectory(vendor/bioparser EXCLUDE_FROM_ALL)` and `target_link_libraries(your_exe bioparser)`.
+If you would like to add bioparser to your project, add the following commands to your CMakeLists.txt file: `add_subdirectory(vendor/bioparser EXCLUDE_FROM_ALL)` and `target_link_libraries(your_exe bioparser)`. If you are not using cmake, include the header `bioparser.hpp` to your project and install zlib on your machine.
 
 For details on how to use the parsers in your code, please look at the examples bellow:
 
