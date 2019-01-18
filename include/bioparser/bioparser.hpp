@@ -266,9 +266,6 @@ bool FastaParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
 
             if (c == '\n') {
                 ++line_number;
-                if (is_end && i == read_bytes - 1) {
-                    is_valid = true;
-                }
             } else if (c == '>' && line_number != 0) {
                 is_valid = true;
                 line_number = 0;
@@ -294,7 +291,7 @@ bool FastaParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
 
             ++current_bytes;
 
-            if (is_valid) {
+            if (is_valid || (is_end && i == read_bytes - 1)) {
                 rightStripHard(name, name_length);
                 rightStrip(sequence, sequence_length);
 
@@ -376,9 +373,9 @@ bool FastqParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
             if (c == '\n') {
                 if (!(line_number == 1 || (line_number == 3 && quality_length < sequence_length))) {
                     line_number = (line_number + 1) % 4;
-                }
-                if (line_number == 0 || (is_end && i == read_bytes - 1)) {
-                    is_valid = true;
+                    if (line_number == 0) {
+                        is_valid = true;
+                    }
                 }
             } else if (line_number == 1 && c == '+') {
                 line_number = 2;
@@ -415,7 +412,7 @@ bool FastqParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
 
             ++current_bytes;
 
-            if (is_valid) {
+            if (is_valid || (is_end && i == read_bytes - 1)) {
                 rightStripHard(name, name_length);
                 rightStrip(sequence, sequence_length);
                 rightStrip(quality, quality_length);
@@ -499,7 +496,7 @@ bool MhapParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
             auto c = this->buffer_[i];
             ++current_bytes;
 
-            if (c == '\n') {
+            if (c == '\n' || (is_end && i == read_bytes - 1)) {
 
                 line[line_length] = 0;
                 rightStrip(line, line_length);
@@ -642,7 +639,7 @@ bool PafParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
             auto c = this->buffer_[i];
             ++current_bytes;
 
-            if (c == '\n') {
+            if (c == '\n' || (is_end && i == read_bytes - 1)) {
 
                 line[line_length] = 0;
                 rightStrip(line, line_length);
@@ -801,7 +798,7 @@ bool SamParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
             auto c = this->buffer_[i];
             ++current_bytes;
 
-            if (c == '\n') {
+            if (c == '\n' || (is_end && i == read_bytes - 1)) {
 
                 if (line[0] == '@') {
                     line_length = 0;
