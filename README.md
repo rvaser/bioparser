@@ -29,14 +29,16 @@ If you would like to add bioparser to your project, add the following commands t
 
 For details on how to use the parsers in your code, please look at the examples bellow:
 
+*Note:* Bioparser by default trims sequence headers to the first white space. To disable this behavior pass `false` to the last argument of member functions `bioparser::Parser:parse`.
+
 ```cpp
 // define a class for sequences in FASTA format
 class Example1 {
 public:
     // required signature for the constructor
     Example1(
-        const char* name, uint32_t name_length,
-        const char* sequence, uint32_t sequence_length) {
+        const char* name, std::uint32_t name_length,
+        const char* sequence, std::uint32_t sequence_length) {
         // your implementation
     }
 };
@@ -44,16 +46,16 @@ public:
 std::vector<std::unique_ptr<Example1>> fasta_objects;
 auto fasta_parser = bioparser::createParser<bioparser::FastaParser, Example1>(path_to_file);
 // read the whole file
-fasta_parser->parse_objects(fasta_objects, -1);
+fasta_parser->parse(fasta_objects, -1);
 
 // define a class for sequences in FASTQ format
 class Example2 {
 public:
     // required signature for the constructor
     Example2(
-        const char* name, uint32_t name_length,
-        const char* sequence, uint32_t sequence_length,
-        const char* quality, uint32_t quality_length) {
+        const char* name, std::uint32_t name_length,
+        const char* sequence, std::uint32_t sequence_length,
+        const char* quality, std::uint32_t quality_length) {
         // your implementation
     }
 };
@@ -61,9 +63,9 @@ public:
 std::vector<std::unique_ptr<Example2>> fastq_objects;
 auto fastq_parser = bioparser::createParser<bioparser::FastqParser, Example2>(path_to_file2);
 // read a predefined size of bytes
-uint64_t size_in_bytes = 500 * 1024 * 1024; // 500 MB
+std::uint64_t size_in_bytes = 500 * 1024 * 1024; // 500 MB
 while (true) {
-    auto status = fastq_parser->parse_objects(fastq_objects, size_in_bytes);
+    auto status = fastq_parser->parse(fastq_objects, size_in_bytes);
     // do some work with objects
     if (status == false) {
         break;
@@ -75,70 +77,70 @@ class Example3 {
 public:
     // required signature for the constructor
     Example3(
-        uint64_t a_id,
-        uint64_t b_id,
+        std::uint64_t a_id,
+        std::uint64_t b_id,
         double eq_bases_perc,
-        uint32_t minmers,
-        uint32_t a_rc,
-        uint32_t a_begin,
-        uint32_t a_end,
-        uint32_t a_length,
-        uint32_t b_rc,
-        uint32_t b_begin,
-        uint32_t b_end,
-        uint32_t b_length) {
+        std::uint32_t minmers,
+        std::uint32_t a_rc,
+        std::uint32_t a_begin,
+        std::uint32_t a_end,
+        std::uint32_t a_length,
+        std::uint32_t b_rc,
+        std::uint32_t b_begin,
+        std::uint32_t b_end,
+        std::uint32_t b_length) {
         // your implementation
     }
 };
 
 std::vector<std::unique_ptr<Example3>> mhap_objects;
 auto mhap_parser = bioparser::createParser<bioparser::MhapParser, Example3>(path_to_file3);
-mhap_parser->parse_objects(mhap_objects, -1);
+mhap_parser->parse(mhap_objects, -1);
 
 // define a class for overlaps in PAF format or add a constructor to existing overlap class
 Example3::Example3(
-    const char* q_name, uint32_t q_name_length,
-    uint32_t q_length,
-    uint32_t q_begin,
-    uint32_t q_end,
+    const char* q_name, std::uint32_t q_name_length,
+    std::uint32_t q_length,
+    std::uint32_t q_begin,
+    std::uint32_t q_end,
     char orientation,
-    const char* t_name, uint32_t t_name_length,
-    uint32_t t_length,
-    uint32_t t_begin,
-    uint32_t t_end,
-    uint32_t matching_bases,
-    uint32_t overlap_length,
-    uint32_t mapping_quality) {
+    const char* t_name, std::uint32_t t_name_length,
+    std::uint32_t t_length,
+    std::uint32_t t_begin,
+    std::uint32_t t_end,
+    std::uint32_t matching_bases,
+    std::uint32_t overlap_length,
+    std::uint32_t mapping_quality) {
     // your implementation
 }
 
 std::vector<std::unique_ptr<ExampleClass3>> paf_objects;
 auto paf_parser = bioparser::createParser<bioparser::PafParser, ExampleClass3>(path_to_file4);
-paf_parser->parse_objects(paf_objects, -1);
+paf_parser->parse(paf_objects, -1);
 
 // define a class for alignments in SAM format
 class Example4 {
 public:
     // required signature for the constructor
     Example4(
-        const char* q_name, uint32_t q_name_length,
-        uint32_t flag,
-        const char* t_name, uint32_t t_name_length,
-        uint32_t t_begin,
-        uint32_t mapping_quality,
-        const char* cigar, uint32_t cigar_length,
-        const char* t_next_name, uint32_t t_next_name_length,
-        uint32_t t_next_begin,
-        uint32_t template_length,
-        const char* sequence, uint32_t sequence_length,
-        const char* quality, uint32_t quality_length) {
+        const char* q_name, std::uint32_t q_name_length,
+        std::uint32_t flag,
+        const char* t_name, std::uint32_t t_name_length,
+        std::uint32_t t_begin,
+        std::uint32_t mapping_quality,
+        const char* cigar, std::uint32_t cigar_length,
+        const char* t_next_name, std::uint32_t t_next_name_length,
+        std::uint32_t t_next_begin,
+        std::uint32_t template_length,
+        const char* sequence, std::uint32_t sequence_length,
+        const char* quality, std::uint32_t quality_length) {
         // your implementation
     }
 };
 
 std::vector<std::unique_ptr<Example4>> sam_objects;
 auto sam_parser = bioparser::createParser<bioparser::SamParser, Example4>(path_to_file5);
-sam_parser->parse_objects(sam_objects, -1);
+sam_parser->parse(sam_objects, -1);
 ```
 If your class has a **private** constructor with the required signature, format your classes in the following way:
 

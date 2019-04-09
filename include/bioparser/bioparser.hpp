@@ -6,8 +6,8 @@
 
 #pragma once
 
-#include <stdlib.h>
-#include <stdint.h>
+#include <cstdint>
+#include <exception>
 #include <memory>
 #include <string>
 #include <vector>
@@ -16,12 +16,14 @@
 
 namespace bioparser {
 
-constexpr uint32_t kBufferSize = 64 * 1024;
+static const std::string version = "v2.0.0";
+
+constexpr std::uint32_t kBufferSize = 64 * 1024;
 
 // Small/Medium/Large Storage Size
-constexpr uint32_t kSSS = 1024;
-constexpr uint32_t kMSS = 8 * 1024 * 1024;
-constexpr uint32_t kLSS = 512 * 1024 * 1024;
+constexpr std::uint32_t kSSS = 4 * 1024;
+constexpr std::uint32_t kMSS = 8 * 1024 * 1024;
+constexpr std::uint32_t kLSS = 512 * 1024 * 1024;
 
 /*!
  * @brief Parser absctract class
@@ -60,12 +62,14 @@ public:
 
     void reset();
 
-    virtual bool parse_objects(std::vector<std::unique_ptr<T>>& dst,
-        uint64_t max_bytes) = 0;
+    virtual bool parse(std::vector<std::unique_ptr<T>>& dst,
+        std::uint64_t max_bytes, bool trim = true) = 0;
 
-    bool parse_objects(std::vector<std::shared_ptr<T>>& dst, uint64_t max_bytes);
+    bool parse(std::vector<std::shared_ptr<T>>& dst, std::uint64_t max_bytes,
+        bool trim = true);
+
 protected:
-    Parser(gzFile input_file, uint32_t storage_size);
+    Parser(gzFile input_file, std::uint32_t storage_size);
     Parser(const Parser&) = delete;
     const Parser& operator=(const Parser&) = delete;
 
@@ -79,11 +83,12 @@ class FastaParser: public Parser<T> {
 public:
     ~FastaParser();
 
-    bool parse_objects(std::vector<std::unique_ptr<T>>& dst,
-        uint64_t max_bytes) override;
+    bool parse(std::vector<std::unique_ptr<T>>& dst,
+        std::uint64_t max_bytes, bool trim = true) override;
 
     friend std::unique_ptr<Parser<T>>
         createParser<bioparser::FastaParser, T>(const std::string& path);
+
 private:
     FastaParser(gzFile input_file);
     FastaParser(const FastaParser&) = delete;
@@ -95,11 +100,12 @@ class FastqParser: public Parser<T> {
 public:
     ~FastqParser();
 
-    bool parse_objects(std::vector<std::unique_ptr<T>>& dst,
-        uint64_t max_bytes) override;
+    bool parse(std::vector<std::unique_ptr<T>>& dst,
+        std::uint64_t max_bytes, bool trim = true) override;
 
     friend std::unique_ptr<Parser<T>>
         createParser<bioparser::FastqParser, T>(const std::string& path);
+
 private:
     FastqParser(gzFile input_file);
     FastqParser(const FastqParser&) = delete;
@@ -111,11 +117,12 @@ class MhapParser: public Parser<T> {
 public:
     ~MhapParser();
 
-    bool parse_objects(std::vector<std::unique_ptr<T>>& dst,
-        uint64_t max_bytes) override;
+    bool parse(std::vector<std::unique_ptr<T>>& dst,
+        std::uint64_t max_bytes, bool trim = true) override;
 
     friend std::unique_ptr<Parser<T>>
         createParser<bioparser::MhapParser, T>(const std::string& path);
+
 private:
     MhapParser(gzFile input_file);
     MhapParser(const MhapParser&) = delete;
@@ -127,11 +134,12 @@ class PafParser: public Parser<T> {
 public:
     ~PafParser();
 
-    bool parse_objects(std::vector<std::unique_ptr<T>>& dst,
-        uint64_t max_bytes) override;
+    bool parse(std::vector<std::unique_ptr<T>>& dst,
+        std::uint64_t max_bytes, bool trim = true) override;
 
     friend std::unique_ptr<Parser<T>>
         createParser<bioparser::PafParser, T>(const std::string& path);
+
 private:
     PafParser(gzFile input_file);
     PafParser(const PafParser&) = delete;
@@ -143,11 +151,12 @@ class SamParser: public Parser<T> {
 public:
     ~SamParser();
 
-    bool parse_objects(std::vector<std::unique_ptr<T>>& dst,
-        uint64_t max_bytes) override;
+    bool parse(std::vector<std::unique_ptr<T>>& dst,
+        std::uint64_t max_bytes, bool trim = true) override;
 
     friend std::unique_ptr<Parser<T>>
         createParser<bioparser::SamParser, T>(const std::string& path);
+
 private:
     SamParser(gzFile input_file);
     SamParser(const SamParser&) = delete;
@@ -157,14 +166,14 @@ private:
 /*!
  * @brief Implementation
  */
-inline void rightStrip(const char* src, uint32_t& src_length) {
+inline void rightStrip(const char* src, std::uint32_t& src_length) {
     while (src_length > 0 && isspace(src[src_length - 1])) {
         --src_length;
     }
 }
 
-inline void rightStripHard(const char* src, uint32_t& src_length) {
-    for (uint32_t i = 0; i < src_length; ++i) {
+inline void rightStripHard(const char* src, std::uint32_t& src_length) {
+    for (std::uint32_t i = 0; i < src_length; ++i) {
         if (isspace(src[i])) {
             src_length = i;
             break;
@@ -173,39 +182,38 @@ inline void rightStripHard(const char* src, uint32_t& src_length) {
 }
 
 template<template<class> class P, class T>
-std::unique_ptr<Parser<T>> createParser(const std::string& path) {
+inline std::unique_ptr<Parser<T>> createParser(const std::string& path) {
 
     auto input_file = gzopen(path.c_str(), "r");
     if (input_file == nullptr) {
-        fprintf(stderr, "[bioparser::createParser] error: "
-            "unable to open file %s!\n", path.c_str());
-        exit(1);
+        throw std::invalid_argument("[bioparser::createParser] error: "
+            "unable to open file " + path + "!");
     }
 
     return std::unique_ptr<Parser<T>>(new P<T>(input_file));
 }
 
 template<class T>
-Parser<T>::Parser(gzFile input_file, uint32_t storage_size)
+inline Parser<T>::Parser(gzFile input_file, std::uint32_t storage_size)
         : input_file_(input_file, gzclose), buffer_(kBufferSize, 0),
         storage_(storage_size, 0) {
 }
 
 template<class T>
-Parser<T>::~Parser() {
+inline Parser<T>::~Parser() {
 }
 
 template<class T>
-void Parser<T>::reset() {
+inline void Parser<T>::reset() {
     gzseek(this->input_file_.get(), 0, SEEK_SET);
 }
 
 template<class T>
-bool Parser<T>::parse_objects(std::vector<std::shared_ptr<T>>& dst,
-    uint64_t max_bytes) {
+inline bool Parser<T>::parse(std::vector<std::shared_ptr<T>>& dst,
+    std::uint64_t max_bytes, bool trim) {
 
     std::vector<std::unique_ptr<T>> tmp;
-    auto ret = this->parse_objects(tmp, max_bytes);
+    auto ret = this->parse_objects(tmp, max_bytes, trim);
 
     dst.reserve(dst.size() + tmp.size());
     for (auto& it: tmp) {
@@ -215,53 +223,52 @@ bool Parser<T>::parse_objects(std::vector<std::shared_ptr<T>>& dst,
 }
 
 template<class T>
-FastaParser<T>::FastaParser(gzFile input_file)
+inline FastaParser<T>::FastaParser(gzFile input_file)
         : Parser<T>(input_file, kSSS + kMSS) {
 }
 
 template<class T>
-FastaParser<T>::~FastaParser() {
+inline FastaParser<T>::~FastaParser() {
 }
 
 template<class T>
-bool FastaParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
-    uint64_t max_bytes) {
+inline bool FastaParser<T>::parse(std::vector<std::unique_ptr<T>>& dst,
+    std::uint64_t max_bytes, bool trim) {
 
     auto input_file = this->input_file_.get();
     bool is_end = gzeof(input_file);
     bool is_valid = false;
     bool status = false;
-    uint64_t current_bytes = 0;
-    uint64_t total_bytes = 0;
-    uint64_t num_objects = 0;
-    uint64_t last_object_id = num_objects;
-    uint32_t line_number = 0;
+    std::uint64_t current_bytes = 0;
+    std::uint64_t total_bytes = 0;
+    std::uint64_t num_objects = 0;
+    std::uint64_t last_object_id = num_objects;
+    std::uint32_t line_number = 0;
 
     char* name = &(this->storage_[0]);
-    uint32_t name_length = 0;
+    std::uint32_t name_length = 0;
 
     char* sequence = &(this->storage_[kSSS]);
-    uint32_t sequence_length = 0;
+    std::uint32_t sequence_length = 0;
 
     while (!is_end) {
 
-        uint64_t read_bytes = gzfread(this->buffer_.data(), sizeof(char),
+        std::uint64_t read_bytes = gzfread(this->buffer_.data(), sizeof(char),
             this->buffer_.size(), input_file);
         is_end = gzeof(input_file);
 
         total_bytes += read_bytes;
         if (max_bytes != 0 && total_bytes > max_bytes) {
             if (last_object_id == num_objects) {
-                fprintf(stderr, "[bioparser::FastaParser] error: "
-                    "too small chunk size!\n");
-                exit(1);
+                throw std::invalid_argument("[bioparser::FastaParser] error: "
+                    "too small chunk size!");
             }
             gzseek(input_file, -(current_bytes + read_bytes), SEEK_CUR);
             status = true;
             break;
         }
 
-        for (uint32_t i = 0; i < read_bytes; ++i) {
+        for (std::uint32_t i = 0; i < read_bytes; ++i) {
             auto c = this->buffer_[i];
 
             if (c == '\n') {
@@ -292,13 +299,16 @@ bool FastaParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
             ++current_bytes;
 
             if (is_valid || (is_end && i == read_bytes - 1)) {
-                rightStripHard(name, name_length);
+                if (trim) {
+                    rightStripHard(name, name_length);
+                } else {
+                    rightStrip(name, name_length);
+                }
                 rightStrip(sequence, sequence_length);
 
                 if (name_length == 0 || name[0] != '>' || sequence_length == 0) {
-                    fprintf(stderr, "[bioparser::FastaParser] error: "
-                        "invalid file format!\n");
-                    exit(1);
+                    throw std::invalid_argument("[bioparser::FastaParser] error: "
+                        "invalid file format!");
                 }
 
                 dst.emplace_back(std::unique_ptr<T>(new T(
@@ -318,56 +328,55 @@ bool FastaParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
 }
 
 template<class T>
-FastqParser<T>::FastqParser(gzFile input_file)
+inline FastqParser<T>::FastqParser(gzFile input_file)
         : Parser<T>(input_file, kSSS + 2 * kMSS) {
 }
 
 template<class T>
-FastqParser<T>::~FastqParser() {
+inline FastqParser<T>::~FastqParser() {
 }
 
 template<class T>
-bool FastqParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
-    uint64_t max_bytes) {
+inline bool FastqParser<T>::parse(std::vector<std::unique_ptr<T>>& dst,
+    std::uint64_t max_bytes, bool trim) {
 
     auto input_file = this->input_file_.get();
     bool is_end = gzeof(input_file);
     bool is_valid = false;
     bool status = false;
-    uint64_t current_bytes = 0;
-    uint64_t total_bytes = 0;
-    uint64_t num_objects = 0;
-    uint64_t last_object_id = num_objects;
-    uint32_t line_number = 0;
+    std::uint64_t current_bytes = 0;
+    std::uint64_t total_bytes = 0;
+    std::uint64_t num_objects = 0;
+    std::uint64_t last_object_id = num_objects;
+    std::uint32_t line_number = 0;
 
     char* name = &(this->storage_[0]);
-    uint32_t name_length = 0;
+    std::uint32_t name_length = 0;
 
     char* sequence = &(this->storage_[kSSS]);
-    uint32_t sequence_length = 0;
+    std::uint32_t sequence_length = 0;
 
     char* quality = &(this->storage_[kSSS + kMSS]);
-    uint32_t quality_length = 0;
+    std::uint32_t quality_length = 0;
 
     while (!is_end) {
 
-        uint64_t read_bytes = gzfread(this->buffer_.data(), sizeof(char),
+        std::uint64_t read_bytes = gzfread(this->buffer_.data(), sizeof(char),
             this->buffer_.size(), input_file);
         is_end = gzeof(input_file);
 
         total_bytes += read_bytes;
         if (max_bytes != 0 && total_bytes > max_bytes) {
             if (last_object_id == num_objects) {
-                fprintf(stderr, "[bioparser::FastqParser] error: "
-                    "too small chunk size!\n");
-                exit(1);
+                throw std::invalid_argument("[bioparser::FastqParser] error: "
+                    "too small chunk size!");
             }
             gzseek(input_file, -(current_bytes + read_bytes), SEEK_CUR);
             status = true;
             break;
         }
 
-        for (uint32_t i = 0; i < read_bytes; ++i) {
+        for (std::uint32_t i = 0; i < read_bytes; ++i) {
             auto c = this->buffer_[i];
 
             if (c == '\n') {
@@ -413,15 +422,18 @@ bool FastqParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
             ++current_bytes;
 
             if (is_valid || (is_end && i == read_bytes - 1)) {
-                rightStripHard(name, name_length);
+                if (trim) {
+                    rightStripHard(name, name_length);
+                } else {
+                    rightStrip(name, name_length);
+                }
                 rightStrip(sequence, sequence_length);
                 rightStrip(quality, quality_length);
 
                 if (name_length == 0 || name[0] != '@' || sequence_length == 0 ||
                     quality_length == 0 || sequence_length != quality_length) {
-                    fprintf(stderr, "[bioparser::FastqParser] error: "
-                        "invalid file format!\n");
-                    exit(1);
+                    throw std::invalid_argument("[bioparser::FastqParser] error: "
+                        "invalid file format!");
                 }
 
                 dst.emplace_back(std::unique_ptr<T>(new T(
@@ -443,55 +455,54 @@ bool FastqParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
 }
 
 template<class T>
-MhapParser<T>::MhapParser(gzFile input_file)
+inline MhapParser<T>::MhapParser(gzFile input_file)
         : Parser<T>(input_file, kSSS) {
 }
 
 template<class T>
-MhapParser<T>::~MhapParser() {
+inline MhapParser<T>::~MhapParser() {
 }
 
 template<class T>
-bool MhapParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
-    uint64_t max_bytes) {
+inline bool MhapParser<T>::parse(std::vector<std::unique_ptr<T>>& dst,
+    std::uint64_t max_bytes, bool) {
 
     auto input_file = this->input_file_.get();
     bool is_end = gzeof(input_file);
     bool status = false;
-    uint64_t current_bytes = 0;
-    uint64_t total_bytes = 0;
-    uint64_t num_objects = 0;
-    uint64_t last_object_id = num_objects;
+    std::uint64_t current_bytes = 0;
+    std::uint64_t total_bytes = 0;
+    std::uint64_t num_objects = 0;
+    std::uint64_t last_object_id = num_objects;
 
-    const uint32_t kMhapObjectLength = 12;
+    const std::uint32_t kMhapObjectLength = 12;
 
     char* line = &(this->storage_[0]);
-    uint32_t line_length = 0;
+    std::uint32_t line_length = 0;
 
-    uint64_t a_id = 0, b_id = 0;
-    uint32_t a_rc = 0, a_begin = 0, a_end = 0, a_length = 0, b_rc = 0,
+    std::uint64_t a_id = 0, b_id = 0;
+    std::uint32_t a_rc = 0, a_begin = 0, a_end = 0, a_length = 0, b_rc = 0,
         b_begin = 0, b_end = 0, b_length = 0, minmers = 0;
     double error = 0;
 
     while (!is_end) {
 
-        uint64_t read_bytes = gzfread(this->buffer_.data(), sizeof(char),
+        std::uint64_t read_bytes = gzfread(this->buffer_.data(), sizeof(char),
             this->buffer_.size(), input_file);
         is_end = gzeof(input_file);
 
         total_bytes += read_bytes;
         if (max_bytes != 0 && total_bytes > max_bytes) {
             if (last_object_id == num_objects) {
-                fprintf(stderr, "[bioparser::MhapParser] error: "
-                    "too small chunk size!\n");
-                exit(1);
+                throw std::invalid_argument("[bioparser::MhapParser] error: "
+                    "too small chunk size!");
             }
             gzseek(input_file, -(current_bytes + read_bytes), SEEK_CUR);
             status = true;
             break;
         }
 
-        for (uint32_t i = 0; i < read_bytes; ++i) {
+        for (std::uint32_t i = 0; i < read_bytes; ++i) {
 
             auto c = this->buffer_[i];
             ++current_bytes;
@@ -501,10 +512,10 @@ bool MhapParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
                 line[line_length] = 0;
                 rightStrip(line, line_length);
 
-                uint32_t num_values = 0, begin = 0;
+                std::uint32_t num_values = 0, begin = 0;
                 while (true) {
-                    uint32_t end = begin;
-                    for (uint32_t j = begin; j < line_length; ++j) {
+                    std::uint32_t end = begin;
+                    for (std::uint32_t j = begin; j < line_length; ++j) {
                         if (line[j] == ' ') {
                             end = j;
                             break;
@@ -516,43 +527,19 @@ bool MhapParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
                     line[end] = 0;
 
                     switch (num_values) {
-                        case 0:
-                            a_id = atoll(&line[begin]);
-                            break;
-                        case 1:
-                            b_id = atoll(&line[begin]);
-                            break;
-                        case 2:
-                            error = atof(&line[begin]);
-                            break;
-                        case 3:
-                            minmers = atoi(&line[begin]);
-                            break;
-                        case 4:
-                            a_rc = atoi(&line[begin]);
-                            break;
-                        case 5:
-                            a_begin = atoi(&line[begin]);
-                            break;
-                        case 6:
-                            a_end = atoi(&line[begin]);
-                            break;
-                        case 7:
-                            a_length = atoi(&line[begin]);
-                            break;
-                        case 8:
-                            b_rc = atoi(&line[begin]);
-                            break;
-                        case 9:
-                            b_begin = atoi(&line[begin]);
-                            break;
-                        case 10:
-                            b_end = atoi(&line[begin]);
-                            break;
-                        case 11:
-                        default:
-                            b_length = atoi(&line[begin]);
-                            break;
+                        case 0: a_id = atoll(&line[begin]); break;
+                        case 1: b_id = atoll(&line[begin]); break;
+                        case 2: error = atof(&line[begin]); break;
+                        case 3: minmers = atoi(&line[begin]); break;
+                        case 4: a_rc = atoi(&line[begin]); break;
+                        case 5: a_begin = atoi(&line[begin]); break;
+                        case 6: a_end = atoi(&line[begin]); break;
+                        case 7: a_length = atoi(&line[begin]); break;
+                        case 8: b_rc = atoi(&line[begin]); break;
+                        case 9: b_begin = atoi(&line[begin]); break;
+                        case 10: b_end = atoi(&line[begin]); break;
+                        case 11: b_length = atoi(&line[begin]); break;
+                        default: break;
                     }
                     num_values++;
                     if (end == line_length || num_values == kMhapObjectLength) {
@@ -562,9 +549,8 @@ bool MhapParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
                 }
 
                 if (num_values != kMhapObjectLength) {
-                    fprintf(stderr, "[bioparser::MhapParser] error: "
-                        "invalid file format!\n");
-                    exit(1);
+                    throw std::invalid_argument("[bioparser::MhapParser] error: "
+                        "invalid file format!");
                 }
 
                 dst.emplace_back(std::unique_ptr<T>(new T(a_id, b_id, error,
@@ -584,57 +570,56 @@ bool MhapParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
 }
 
 template<class T>
-PafParser<T>::PafParser(gzFile input_file)
-        : Parser<T>(input_file, 3 * kSSS) {
+inline PafParser<T>::PafParser(gzFile input_file)
+        : Parser<T>(input_file, 3 * kSSS + kMSS) {
 }
 
 template<class T>
-PafParser<T>::~PafParser() {
+inline PafParser<T>::~PafParser() {
 }
 
 template<class T>
-bool PafParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
-    uint64_t max_bytes) {
+inline bool PafParser<T>::parse(std::vector<std::unique_ptr<T>>& dst,
+    std::uint64_t max_bytes, bool trim) {
 
     auto input_file = this->input_file_.get();
     bool is_end = gzeof(input_file);
     bool status = false;
-    uint64_t current_bytes = 0;
-    uint64_t total_bytes = 0;
-    uint64_t num_objects = 0;
-    uint64_t last_object_id = num_objects;
+    std::uint64_t current_bytes = 0;
+    std::uint64_t total_bytes = 0;
+    std::uint64_t num_objects = 0;
+    std::uint64_t last_object_id = num_objects;
 
-    const uint32_t kPafObjectLength = 12;
+    const std::uint32_t kPafObjectLength = 12;
 
     char* line = &(this->storage_[0]);
-    uint32_t line_length = 0;
+    std::uint32_t line_length = 0;
 
     const char* q_name = nullptr, * t_name = nullptr;
 
-    uint32_t q_name_length = 0, q_length = 0, q_begin = 0, q_end = 0,
+    std::uint32_t q_name_length = 0, q_length = 0, q_begin = 0, q_end = 0,
         t_name_length = 0, t_length = 0, t_begin = 0, t_end = 0,
         matching_bases = 0, overlap_length = 0, mapping_quality = 0;
     char orientation = '\0';
 
     while (!is_end) {
 
-        uint64_t read_bytes = gzfread(this->buffer_.data(), sizeof(char),
+        std::uint64_t read_bytes = gzfread(this->buffer_.data(), sizeof(char),
             this->buffer_.size(), input_file);
         is_end = gzeof(input_file);
 
         total_bytes += read_bytes;
         if (max_bytes != 0 && total_bytes > max_bytes) {
             if (last_object_id == num_objects) {
-                fprintf(stderr, "[bioparser::PafParser] error: "
-                    "too small chunk size!\n");
-                exit(1);
+                throw std::invalid_argument("[bioparser::PafParser] error: "
+                    "too small chunk size!");
             }
             gzseek(input_file, -(current_bytes + read_bytes), SEEK_CUR);
             status = true;
             break;
         }
 
-        for (uint32_t i = 0; i < read_bytes; ++i) {
+        for (std::uint32_t i = 0; i < read_bytes; ++i) {
 
             auto c = this->buffer_[i];
             ++current_bytes;
@@ -644,10 +629,10 @@ bool PafParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
                 line[line_length] = 0;
                 rightStrip(line, line_length);
 
-                uint32_t num_values = 0, begin = 0;
+                std::uint32_t num_values = 0, begin = 0;
                 while (true) {
-                    uint32_t end = begin;
-                    for (uint32_t j = begin; j < line_length; ++j) {
+                    std::uint32_t end = begin;
+                    for (std::uint32_t j = begin; j < line_length; ++j) {
                         if (line[j] == '\t') {
                             end = j;
                             break;
@@ -663,41 +648,21 @@ bool PafParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
                             q_name = &line[begin];
                             q_name_length = end - begin;
                             break;
-                        case 1:
-                            q_length = atoi(&line[begin]);
-                            break;
-                        case 2:
-                            q_begin = atoi(&line[begin]);
-                            break;
-                        case 3:
-                            q_end = atoi(&line[begin]);
-                            break;
-                        case 4:
-                            orientation = line[begin];
-                            break;
+                        case 1: q_length = atoi(&line[begin]); break;
+                        case 2: q_begin = atoi(&line[begin]); break;
+                        case 3: q_end = atoi(&line[begin]); break;
+                        case 4: orientation = line[begin]; break;
                         case 5:
                             t_name = &line[begin];
                             t_name_length = end - begin;
                             break;
-                        case 6:
-                            t_length = atoi(&line[begin]);
-                            break;
-                        case 7:
-                            t_begin = atoi(&line[begin]);
-                            break;
-                        case 8:
-                            t_end = atoi(&line[begin]);
-                            break;
-                        case 9:
-                            matching_bases = atoi(&line[begin]);
-                            break;
-                        case 10:
-                            overlap_length = atoi(&line[begin]);
-                            break;
-                        case 11:
-                        default:
-                            mapping_quality = atoi(&line[begin]);
-                            break;
+                        case 6: t_length = atoi(&line[begin]); break;
+                        case 7: t_begin = atoi(&line[begin]); break;
+                        case 8: t_end = atoi(&line[begin]); break;
+                        case 9: matching_bases = atoi(&line[begin]); break;
+                        case 10: overlap_length = atoi(&line[begin]); break;
+                        case 11: mapping_quality = atoi(&line[begin]); break;
+                        default: break;
                     }
                     num_values++;
                     if (end == line_length || num_values == kPafObjectLength) {
@@ -707,21 +672,24 @@ bool PafParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
                 }
 
                 if (num_values != kPafObjectLength) {
-                    fprintf(stderr, "[bioparser::PafParser] error: "
-                        "invalid file format!\n");
-                    exit(1);
+                    throw std::invalid_argument("[bioparser::PafParser] error: "
+                        "invalid file format!");
                 }
 
                 q_name_length = std::min(q_name_length, kSSS);
                 t_name_length = std::min(t_name_length, kSSS);
 
-                rightStripHard(q_name, q_name_length);
-                rightStripHard(t_name, t_name_length);
+                if (trim) {
+                    rightStripHard(q_name, q_name_length);
+                    rightStripHard(t_name, t_name_length);
+                } else {
+                    rightStrip(q_name, q_name_length);
+                    rightStrip(t_name, t_name_length);
+                }
 
                 if (q_name_length == 0 || t_name_length == 0) {
-                    fprintf(stderr, "[bioparser::PafParser] error: "
-                        "invalid file format!\n");
-                    exit(1);
+                    throw std::invalid_argument("[bioparser::PafParser] error: "
+                        "invalid file format!");
                 }
 
                 dst.emplace_back(std::unique_ptr<T>(new T(q_name, q_name_length,
@@ -734,6 +702,10 @@ bool PafParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
                 line_length = 0;
             } else {
                 line[line_length++] = c;
+                if (line_length == this->storage_.size()) {
+                    this->storage_.resize(3 * kSSS + kLSS);
+                    line = &(this->storage_[0]);
+                }
             }
         }
     }
@@ -742,58 +714,57 @@ bool PafParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
 }
 
 template<class T>
-SamParser<T>::SamParser(gzFile input_file)
+inline SamParser<T>::SamParser(gzFile input_file)
         : Parser<T>(input_file, 5 * kSSS + 2 * kMSS) {
 }
 
 template<class T>
-SamParser<T>::~SamParser() {
+inline SamParser<T>::~SamParser() {
 }
 
 template<class T>
-bool SamParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
-    uint64_t max_bytes) {
+inline bool SamParser<T>::parse(std::vector<std::unique_ptr<T>>& dst,
+    std::uint64_t max_bytes, bool trim) {
 
     auto input_file = this->input_file_.get();
     bool is_end = gzeof(input_file);
     bool status = false;
-    uint64_t current_bytes = 0;
-    uint64_t total_bytes = 0;
-    uint64_t num_objects = 0;
-    uint64_t last_object_id = num_objects;
+    std::uint64_t current_bytes = 0;
+    std::uint64_t total_bytes = 0;
+    std::uint64_t num_objects = 0;
+    std::uint64_t last_object_id = num_objects;
 
-    const uint32_t kSamObjectLength = 11;
+    const std::uint32_t kSamObjectLength = 11;
 
     char* line = &(this->storage_[0]);
-    uint32_t line_length = 0;
+    std::uint32_t line_length = 0;
 
     const char* q_name = nullptr, * t_name = nullptr, * cigar = nullptr,
         * t_next_name = nullptr, * sequence = nullptr, * quality = nullptr;
 
-    uint32_t q_name_length = 0, flag = 0, t_name_length = 0, t_begin = 0,
+    std::uint32_t q_name_length = 0, flag = 0, t_name_length = 0, t_begin = 0,
         mapping_quality = 0, cigar_length = 0, t_next_name_length = 0,
         t_next_begin = 0, template_length = 0, sequence_length = 0,
         quality_length = 0;
 
     while (!is_end) {
 
-        uint64_t read_bytes = gzfread(this->buffer_.data(), sizeof(char),
+        std::uint64_t read_bytes = gzfread(this->buffer_.data(), sizeof(char),
             this->buffer_.size(), input_file);
         is_end = gzeof(input_file);
 
         total_bytes += read_bytes;
         if (max_bytes != 0 && total_bytes > max_bytes) {
             if (last_object_id == num_objects) {
-                fprintf(stderr, "[bioparser::SamParser] error: "
-                    "too small chunk size!\n");
-                exit(1);
+                throw std::invalid_argument("[bioparser::SamParser] error: "
+                    "too small chunk size!");
             }
             gzseek(input_file, -(current_bytes + read_bytes), SEEK_CUR);
             status = true;
             break;
         }
 
-        for (uint32_t i = 0; i < read_bytes; ++i) {
+        for (std::uint32_t i = 0; i < read_bytes; ++i) {
 
             auto c = this->buffer_[i];
             ++current_bytes;
@@ -809,10 +780,10 @@ bool SamParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
                 line[line_length] = 0;
                 rightStrip(line, line_length);
 
-                uint32_t num_values = 0, begin = 0;
+                std::uint32_t num_values = 0, begin = 0;
                 while (true) {
-                    uint32_t end = begin;
-                    for (uint32_t j = begin; j < line_length; ++j) {
+                    std::uint32_t end = begin;
+                    for (std::uint32_t j = begin; j < line_length; ++j) {
                         if (line[j] == '\t') {
                             end = j;
                             break;
@@ -828,19 +799,13 @@ bool SamParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
                             q_name = &line[begin];
                             q_name_length = end - begin;
                             break;
-                        case 1:
-                            flag = atoi(&line[begin]);
-                            break;
+                        case 1: flag = atoi(&line[begin]); break;
                         case 2:
                             t_name = &line[begin];
                             t_name_length = end - begin;
                             break;
-                        case 3:
-                            t_begin = atoi(&line[begin]);
-                            break;
-                        case 4:
-                            mapping_quality = atoi(&line[begin]);
-                            break;
+                        case 3: t_begin = atoi(&line[begin]); break;
+                        case 4: mapping_quality = atoi(&line[begin]); break;
                         case 5:
                             cigar = &line[begin];
                             cigar_length = end - begin;
@@ -849,21 +814,17 @@ bool SamParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
                             t_next_name = &line[begin];
                             t_next_name_length = end - begin;
                             break;
-                        case 7:
-                            t_next_begin = atoi(&line[begin]);
-                            break;
-                        case 8:
-                            template_length = atoi(&line[begin]);
-                            break;
+                        case 7: t_next_begin = atoi(&line[begin]); break;
+                        case 8: template_length = atoi(&line[begin]); break;
                         case 9:
                             sequence = &line[begin];
                             sequence_length = end - begin;
                             break;
                         case 10:
-                        default:
                             quality = &line[begin];
                             quality_length = end - begin;
                             break;
+                        default: break;
                     }
                     num_values++;
                     if (end == line_length || num_values == kSamObjectLength) {
@@ -873,19 +834,25 @@ bool SamParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
                 }
 
                 if (num_values != kSamObjectLength) {
-                    fprintf(stderr, "[bioparser::SamParser] error: "
-                        "invalid file format!\n");
-                    exit(1);
+                    throw std::invalid_argument("[bioparser::SamParser] error: "
+                        "invalid file format!");
                 }
 
                 q_name_length = std::min(q_name_length, kSSS);
                 t_name_length = std::min(t_name_length, kSSS);
                 t_next_name_length = std::min(t_next_name_length, kSSS);
 
-                rightStripHard(q_name, q_name_length);
-                rightStripHard(t_name, t_name_length);
+                if (trim) {
+                    rightStripHard(q_name, q_name_length);
+                    rightStripHard(t_name, t_name_length);
+                    rightStripHard(t_next_name, t_next_name_length);
+                } else {
+                    rightStrip(q_name, q_name_length);
+                    rightStrip(t_name, t_name_length);
+                    rightStrip(t_next_name, t_next_name_length);
+                }
+
                 rightStrip(cigar, cigar_length);
-                rightStripHard(t_next_name, t_next_name_length);
                 rightStrip(sequence, sequence_length);
                 rightStrip(quality, quality_length);
 
@@ -895,9 +862,8 @@ bool SamParser<T>::parse_objects(std::vector<std::unique_ptr<T>>& dst,
                     (sequence_length > 1 && quality_length > 1 &&
                     sequence_length != quality_length)) {
 
-                    fprintf(stderr, "[bioparser::SamParser] error: "
-                        "invalid file format!\n");
-                    exit(1);
+                    throw std::invalid_argument("[bioparser::SamParser] error: "
+                        "invalid file format!");
                 }
 
                 dst.emplace_back(std::unique_ptr<T>(new T(q_name, q_name_length,
