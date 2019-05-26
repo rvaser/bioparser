@@ -16,7 +16,7 @@
 
 namespace bioparser {
 
-static const std::string version = "v2.0.0";
+static const std::string version = "v2.0.1";
 
 constexpr std::uint32_t kBufferSize = 64 * 1024;
 
@@ -251,6 +251,30 @@ inline bool FastaParser<T>::parse(std::vector<std::unique_ptr<T>>& dst,
     char* sequence = &(this->storage_[kSSS]);
     std::uint32_t sequence_length = 0;
 
+    auto create_T = [&] () -> void {
+        if (trim) {
+            rightStripHard(name, name_length);
+        } else {
+            rightStrip(name, name_length);
+        }
+        rightStrip(sequence, sequence_length);
+
+        if (name_length == 0 || name[0] != '>' || sequence_length == 0) {
+            throw std::invalid_argument("[bioparser::FastaParser] error: "
+                "invalid file format!");
+        }
+
+        dst.emplace_back(std::unique_ptr<T>(new T(
+            (const char*) &(name[1]), name_length - 1,
+            (const char*) sequence, sequence_length)));
+
+        ++num_objects;
+        current_bytes = 1;
+        name_length = 1;
+        sequence_length = 0;
+        is_valid = false;
+    };
+
     while (!is_end) {
 
         std::uint64_t read_bytes = gzfread(this->buffer_.data(), sizeof(char),
@@ -298,29 +322,13 @@ inline bool FastaParser<T>::parse(std::vector<std::unique_ptr<T>>& dst,
 
             ++current_bytes;
 
-            if (is_valid || (is_end && i == read_bytes - 1)) {
-                if (trim) {
-                    rightStripHard(name, name_length);
-                } else {
-                    rightStrip(name, name_length);
-                }
-                rightStrip(sequence, sequence_length);
-
-                if (name_length == 0 || name[0] != '>' || sequence_length == 0) {
-                    throw std::invalid_argument("[bioparser::FastaParser] error: "
-                        "invalid file format!");
-                }
-
-                dst.emplace_back(std::unique_ptr<T>(new T(
-                    (const char*) &(name[1]), name_length - 1,
-                    (const char*) sequence, sequence_length)));
-
-                ++num_objects;
-                current_bytes = 1;
-                name_length = 1;
-                sequence_length = 0;
-                is_valid = false;
+            if (is_valid) {
+                create_T();
             }
+        }
+
+        if (is_end && current_bytes != 0) {
+            create_T();
         }
     }
 
@@ -358,6 +366,34 @@ inline bool FastqParser<T>::parse(std::vector<std::unique_ptr<T>>& dst,
 
     char* quality = &(this->storage_[kSSS + kMSS]);
     std::uint32_t quality_length = 0;
+
+    auto create_T = [&] () -> void {
+        if (trim) {
+            rightStripHard(name, name_length);
+        } else {
+            rightStrip(name, name_length);
+        }
+        rightStrip(sequence, sequence_length);
+        rightStrip(quality, quality_length);
+
+        if (name_length == 0 || name[0] != '@' || sequence_length == 0 ||
+            quality_length == 0 || sequence_length != quality_length) {
+            throw std::invalid_argument("[bioparser::FastqParser] error: "
+                "invalid file format!");
+        }
+
+        dst.emplace_back(std::unique_ptr<T>(new T(
+            (const char*) &(name[1]), name_length - 1,
+            (const char*) sequence, sequence_length,
+            (const char*) quality, quality_length)));
+
+        ++num_objects;
+        current_bytes = 0;
+        name_length = 0;
+        sequence_length = 0;
+        quality_length = 0;
+        is_valid = false;
+    };
 
     while (!is_end) {
 
@@ -421,33 +457,13 @@ inline bool FastqParser<T>::parse(std::vector<std::unique_ptr<T>>& dst,
 
             ++current_bytes;
 
-            if (is_valid || (is_end && i == read_bytes - 1)) {
-                if (trim) {
-                    rightStripHard(name, name_length);
-                } else {
-                    rightStrip(name, name_length);
-                }
-                rightStrip(sequence, sequence_length);
-                rightStrip(quality, quality_length);
-
-                if (name_length == 0 || name[0] != '@' || sequence_length == 0 ||
-                    quality_length == 0 || sequence_length != quality_length) {
-                    throw std::invalid_argument("[bioparser::FastqParser] error: "
-                        "invalid file format!");
-                }
-
-                dst.emplace_back(std::unique_ptr<T>(new T(
-                    (const char*) &(name[1]), name_length - 1,
-                    (const char*) sequence, sequence_length,
-                    (const char*) quality, quality_length)));
-
-                ++num_objects;
-                current_bytes = 0;
-                name_length = 0;
-                sequence_length = 0;
-                quality_length = 0;
-                is_valid = false;
+            if (is_valid) {
+                create_T();
             }
+        }
+
+        if (is_end && current_bytes != 0) {
+            create_T();
         }
     }
 
@@ -485,6 +501,60 @@ inline bool MhapParser<T>::parse(std::vector<std::unique_ptr<T>>& dst,
         b_begin = 0, b_end = 0, b_length = 0, minmers = 0;
     double error = 0;
 
+    auto create_T = [&] () -> void {
+        line[line_length] = 0;
+        rightStrip(line, line_length);
+
+        std::uint32_t num_values = 0, begin = 0;
+        while (true) {
+            std::uint32_t end = begin;
+            for (std::uint32_t j = begin; j < line_length; ++j) {
+                if (line[j] == ' ') {
+                    end = j;
+                    break;
+                }
+            }
+            if (end == begin) {
+                end = line_length;
+            }
+            line[end] = 0;
+
+            switch (num_values) {
+                case 0: a_id = atoll(&line[begin]); break;
+                case 1: b_id = atoll(&line[begin]); break;
+                case 2: error = atof(&line[begin]); break;
+                case 3: minmers = atoi(&line[begin]); break;
+                case 4: a_rc = atoi(&line[begin]); break;
+                case 5: a_begin = atoi(&line[begin]); break;
+                case 6: a_end = atoi(&line[begin]); break;
+                case 7: a_length = atoi(&line[begin]); break;
+                case 8: b_rc = atoi(&line[begin]); break;
+                case 9: b_begin = atoi(&line[begin]); break;
+                case 10: b_end = atoi(&line[begin]); break;
+                case 11: b_length = atoi(&line[begin]); break;
+                default: break;
+            }
+            num_values++;
+            if (end == line_length || num_values == kMhapObjectLength) {
+                break;
+            }
+            begin = end + 1;
+        }
+
+        if (num_values != kMhapObjectLength) {
+            throw std::invalid_argument("[bioparser::MhapParser] error: "
+                "invalid file format!");
+        }
+
+        dst.emplace_back(std::unique_ptr<T>(new T(a_id, b_id, error,
+            minmers, a_rc, a_begin, a_end, a_length, b_rc, b_begin,
+            b_end, b_length)));
+
+        ++num_objects;
+        current_bytes = 0;
+        line_length = 0;
+    };
+
     while (!is_end) {
 
         std::uint64_t read_bytes = gzfread(this->buffer_.data(), sizeof(char),
@@ -507,62 +577,15 @@ inline bool MhapParser<T>::parse(std::vector<std::unique_ptr<T>>& dst,
             auto c = this->buffer_[i];
             ++current_bytes;
 
-            if (c == '\n' || (is_end && i == read_bytes - 1)) {
-
-                line[line_length] = 0;
-                rightStrip(line, line_length);
-
-                std::uint32_t num_values = 0, begin = 0;
-                while (true) {
-                    std::uint32_t end = begin;
-                    for (std::uint32_t j = begin; j < line_length; ++j) {
-                        if (line[j] == ' ') {
-                            end = j;
-                            break;
-                        }
-                    }
-                    if (end == begin) {
-                        end = line_length;
-                    }
-                    line[end] = 0;
-
-                    switch (num_values) {
-                        case 0: a_id = atoll(&line[begin]); break;
-                        case 1: b_id = atoll(&line[begin]); break;
-                        case 2: error = atof(&line[begin]); break;
-                        case 3: minmers = atoi(&line[begin]); break;
-                        case 4: a_rc = atoi(&line[begin]); break;
-                        case 5: a_begin = atoi(&line[begin]); break;
-                        case 6: a_end = atoi(&line[begin]); break;
-                        case 7: a_length = atoi(&line[begin]); break;
-                        case 8: b_rc = atoi(&line[begin]); break;
-                        case 9: b_begin = atoi(&line[begin]); break;
-                        case 10: b_end = atoi(&line[begin]); break;
-                        case 11: b_length = atoi(&line[begin]); break;
-                        default: break;
-                    }
-                    num_values++;
-                    if (end == line_length || num_values == kMhapObjectLength) {
-                        break;
-                    }
-                    begin = end + 1;
-                }
-
-                if (num_values != kMhapObjectLength) {
-                    throw std::invalid_argument("[bioparser::MhapParser] error: "
-                        "invalid file format!");
-                }
-
-                dst.emplace_back(std::unique_ptr<T>(new T(a_id, b_id, error,
-                    minmers, a_rc, a_begin, a_end, a_length, b_rc, b_begin,
-                    b_end, b_length)));
-
-                ++num_objects;
-                current_bytes = 0;
-                line_length = 0;
+            if (c == '\n') {
+                create_T();
             } else {
                 line[line_length++] = c;
             }
+        }
+
+        if (is_end && current_bytes != 0) {
+            create_T();
         }
     }
 
@@ -602,6 +625,83 @@ inline bool PafParser<T>::parse(std::vector<std::unique_ptr<T>>& dst,
         matching_bases = 0, overlap_length = 0, mapping_quality = 0;
     char orientation = '\0';
 
+    auto create_T = [&] () -> void {
+        line[line_length] = 0;
+        rightStrip(line, line_length);
+
+        std::uint32_t num_values = 0, begin = 0;
+        while (true) {
+            std::uint32_t end = begin;
+            for (std::uint32_t j = begin; j < line_length; ++j) {
+                if (line[j] == '\t') {
+                    end = j;
+                    break;
+                }
+            }
+            if (end == begin) {
+                end = line_length;
+            }
+            line[end] = 0;
+
+            switch (num_values) {
+                case 0:
+                    q_name = &line[begin];
+                    q_name_length = end - begin;
+                    break;
+                case 1: q_length = atoi(&line[begin]); break;
+                case 2: q_begin = atoi(&line[begin]); break;
+                case 3: q_end = atoi(&line[begin]); break;
+                case 4: orientation = line[begin]; break;
+                case 5:
+                    t_name = &line[begin];
+                    t_name_length = end - begin;
+                    break;
+                case 6: t_length = atoi(&line[begin]); break;
+                case 7: t_begin = atoi(&line[begin]); break;
+                case 8: t_end = atoi(&line[begin]); break;
+                case 9: matching_bases = atoi(&line[begin]); break;
+                case 10: overlap_length = atoi(&line[begin]); break;
+                case 11: mapping_quality = atoi(&line[begin]); break;
+                default: break;
+            }
+            num_values++;
+            if (end == line_length || num_values == kPafObjectLength) {
+                break;
+            }
+            begin = end + 1;
+        }
+
+        if (num_values != kPafObjectLength) {
+            throw std::invalid_argument("[bioparser::PafParser] error: "
+                "invalid file format!");
+        }
+
+        q_name_length = std::min(q_name_length, kSSS);
+        t_name_length = std::min(t_name_length, kSSS);
+
+        if (trim) {
+            rightStripHard(q_name, q_name_length);
+            rightStripHard(t_name, t_name_length);
+        } else {
+            rightStrip(q_name, q_name_length);
+            rightStrip(t_name, t_name_length);
+        }
+
+        if (q_name_length == 0 || t_name_length == 0) {
+            throw std::invalid_argument("[bioparser::PafParser] error: "
+                "invalid file format!");
+        }
+
+        dst.emplace_back(std::unique_ptr<T>(new T(q_name, q_name_length,
+            q_length, q_begin, q_end, orientation, t_name, t_name_length,
+            t_length, t_begin, t_end, matching_bases, overlap_length,
+            mapping_quality)));
+
+        ++num_objects;
+        current_bytes = 0;
+        line_length = 0;
+    };
+
     while (!is_end) {
 
         std::uint64_t read_bytes = gzfread(this->buffer_.data(), sizeof(char),
@@ -624,82 +724,8 @@ inline bool PafParser<T>::parse(std::vector<std::unique_ptr<T>>& dst,
             auto c = this->buffer_[i];
             ++current_bytes;
 
-            if (c == '\n' || (is_end && i == read_bytes - 1)) {
-
-                line[line_length] = 0;
-                rightStrip(line, line_length);
-
-                std::uint32_t num_values = 0, begin = 0;
-                while (true) {
-                    std::uint32_t end = begin;
-                    for (std::uint32_t j = begin; j < line_length; ++j) {
-                        if (line[j] == '\t') {
-                            end = j;
-                            break;
-                        }
-                    }
-                    if (end == begin) {
-                        end = line_length;
-                    }
-                    line[end] = 0;
-
-                    switch (num_values) {
-                        case 0:
-                            q_name = &line[begin];
-                            q_name_length = end - begin;
-                            break;
-                        case 1: q_length = atoi(&line[begin]); break;
-                        case 2: q_begin = atoi(&line[begin]); break;
-                        case 3: q_end = atoi(&line[begin]); break;
-                        case 4: orientation = line[begin]; break;
-                        case 5:
-                            t_name = &line[begin];
-                            t_name_length = end - begin;
-                            break;
-                        case 6: t_length = atoi(&line[begin]); break;
-                        case 7: t_begin = atoi(&line[begin]); break;
-                        case 8: t_end = atoi(&line[begin]); break;
-                        case 9: matching_bases = atoi(&line[begin]); break;
-                        case 10: overlap_length = atoi(&line[begin]); break;
-                        case 11: mapping_quality = atoi(&line[begin]); break;
-                        default: break;
-                    }
-                    num_values++;
-                    if (end == line_length || num_values == kPafObjectLength) {
-                        break;
-                    }
-                    begin = end + 1;
-                }
-
-                if (num_values != kPafObjectLength) {
-                    throw std::invalid_argument("[bioparser::PafParser] error: "
-                        "invalid file format!");
-                }
-
-                q_name_length = std::min(q_name_length, kSSS);
-                t_name_length = std::min(t_name_length, kSSS);
-
-                if (trim) {
-                    rightStripHard(q_name, q_name_length);
-                    rightStripHard(t_name, t_name_length);
-                } else {
-                    rightStrip(q_name, q_name_length);
-                    rightStrip(t_name, t_name_length);
-                }
-
-                if (q_name_length == 0 || t_name_length == 0) {
-                    throw std::invalid_argument("[bioparser::PafParser] error: "
-                        "invalid file format!");
-                }
-
-                dst.emplace_back(std::unique_ptr<T>(new T(q_name, q_name_length,
-                    q_length, q_begin, q_end, orientation, t_name, t_name_length,
-                    t_length, t_begin, t_end, matching_bases, overlap_length,
-                    mapping_quality)));
-
-                ++num_objects;
-                current_bytes = 0;
-                line_length = 0;
+            if (c == '\n') {
+                create_T();
             } else {
                 line[line_length++] = c;
                 if (line_length == this->storage_.size()) {
@@ -707,6 +733,10 @@ inline bool PafParser<T>::parse(std::vector<std::unique_ptr<T>>& dst,
                     line = &(this->storage_[0]);
                 }
             }
+        }
+
+        if (is_end && current_bytes != 0) {
+            create_T();
         }
     }
 
@@ -747,6 +777,108 @@ inline bool SamParser<T>::parse(std::vector<std::unique_ptr<T>>& dst,
         t_next_begin = 0, template_length = 0, sequence_length = 0,
         quality_length = 0;
 
+    auto create_T = [&] () -> void {
+
+        line[line_length] = 0;
+        rightStrip(line, line_length);
+
+        std::uint32_t num_values = 0, begin = 0;
+        while (true) {
+            std::uint32_t end = begin;
+            for (std::uint32_t j = begin; j < line_length; ++j) {
+                if (line[j] == '\t') {
+                    end = j;
+                    break;
+                }
+            }
+            if (end == begin) {
+                end = line_length;
+            }
+            line[end] = 0;
+
+            switch (num_values) {
+                case 0:
+                    q_name = &line[begin];
+                    q_name_length = end - begin;
+                    break;
+                case 1: flag = atoi(&line[begin]); break;
+                case 2:
+                    t_name = &line[begin];
+                    t_name_length = end - begin;
+                    break;
+                case 3: t_begin = atoi(&line[begin]); break;
+                case 4: mapping_quality = atoi(&line[begin]); break;
+                case 5:
+                    cigar = &line[begin];
+                    cigar_length = end - begin;
+                    break;
+                case 6:
+                    t_next_name = &line[begin];
+                    t_next_name_length = end - begin;
+                    break;
+                case 7: t_next_begin = atoi(&line[begin]); break;
+                case 8: template_length = atoi(&line[begin]); break;
+                case 9:
+                    sequence = &line[begin];
+                    sequence_length = end - begin;
+                    break;
+                case 10:
+                    quality = &line[begin];
+                    quality_length = end - begin;
+                    break;
+                default: break;
+            }
+            num_values++;
+            if (end == line_length || num_values == kSamObjectLength) {
+                break;
+            }
+            begin = end + 1;
+        }
+
+        if (num_values != kSamObjectLength) {
+            throw std::invalid_argument("[bioparser::SamParser] error: "
+                "invalid file format!");
+        }
+
+        q_name_length = std::min(q_name_length, kSSS);
+        t_name_length = std::min(t_name_length, kSSS);
+        t_next_name_length = std::min(t_next_name_length, kSSS);
+
+        if (trim) {
+            rightStripHard(q_name, q_name_length);
+            rightStripHard(t_name, t_name_length);
+            rightStripHard(t_next_name, t_next_name_length);
+        } else {
+            rightStrip(q_name, q_name_length);
+            rightStrip(t_name, t_name_length);
+            rightStrip(t_next_name, t_next_name_length);
+        }
+
+        rightStrip(cigar, cigar_length);
+        rightStrip(sequence, sequence_length);
+        rightStrip(quality, quality_length);
+
+        if (q_name_length == 0 || t_name_length == 0 ||
+            cigar_length == 0 || t_next_name_length == 0 ||
+            sequence_length == 0 || quality_length == 0 ||
+            (sequence_length > 1 && quality_length > 1 &&
+            sequence_length != quality_length)) {
+
+            throw std::invalid_argument("[bioparser::SamParser] error: "
+                "invalid file format!");
+        }
+
+        dst.emplace_back(std::unique_ptr<T>(new T(q_name, q_name_length,
+            flag, t_name, t_name_length, t_begin, mapping_quality,
+            cigar, cigar_length, t_next_name, t_next_name_length,
+            t_next_begin, template_length, sequence, sequence_length,
+            quality, quality_length)));
+
+        ++num_objects;
+        current_bytes = 0;
+        line_length = 0;
+    };
+
     while (!is_end) {
 
         std::uint64_t read_bytes = gzfread(this->buffer_.data(), sizeof(char),
@@ -769,112 +901,13 @@ inline bool SamParser<T>::parse(std::vector<std::unique_ptr<T>>& dst,
             auto c = this->buffer_[i];
             ++current_bytes;
 
-            if (c == '\n' || (is_end && i == read_bytes - 1)) {
-
+            if (c == '\n') {
                 if (line[0] == '@') {
                     line_length = 0;
                     current_bytes = 0;
                     continue;
                 }
-
-                line[line_length] = 0;
-                rightStrip(line, line_length);
-
-                std::uint32_t num_values = 0, begin = 0;
-                while (true) {
-                    std::uint32_t end = begin;
-                    for (std::uint32_t j = begin; j < line_length; ++j) {
-                        if (line[j] == '\t') {
-                            end = j;
-                            break;
-                        }
-                    }
-                    if (end == begin) {
-                        end = line_length;
-                    }
-                    line[end] = 0;
-
-                    switch (num_values) {
-                        case 0:
-                            q_name = &line[begin];
-                            q_name_length = end - begin;
-                            break;
-                        case 1: flag = atoi(&line[begin]); break;
-                        case 2:
-                            t_name = &line[begin];
-                            t_name_length = end - begin;
-                            break;
-                        case 3: t_begin = atoi(&line[begin]); break;
-                        case 4: mapping_quality = atoi(&line[begin]); break;
-                        case 5:
-                            cigar = &line[begin];
-                            cigar_length = end - begin;
-                            break;
-                        case 6:
-                            t_next_name = &line[begin];
-                            t_next_name_length = end - begin;
-                            break;
-                        case 7: t_next_begin = atoi(&line[begin]); break;
-                        case 8: template_length = atoi(&line[begin]); break;
-                        case 9:
-                            sequence = &line[begin];
-                            sequence_length = end - begin;
-                            break;
-                        case 10:
-                            quality = &line[begin];
-                            quality_length = end - begin;
-                            break;
-                        default: break;
-                    }
-                    num_values++;
-                    if (end == line_length || num_values == kSamObjectLength) {
-                        break;
-                    }
-                    begin = end + 1;
-                }
-
-                if (num_values != kSamObjectLength) {
-                    throw std::invalid_argument("[bioparser::SamParser] error: "
-                        "invalid file format!");
-                }
-
-                q_name_length = std::min(q_name_length, kSSS);
-                t_name_length = std::min(t_name_length, kSSS);
-                t_next_name_length = std::min(t_next_name_length, kSSS);
-
-                if (trim) {
-                    rightStripHard(q_name, q_name_length);
-                    rightStripHard(t_name, t_name_length);
-                    rightStripHard(t_next_name, t_next_name_length);
-                } else {
-                    rightStrip(q_name, q_name_length);
-                    rightStrip(t_name, t_name_length);
-                    rightStrip(t_next_name, t_next_name_length);
-                }
-
-                rightStrip(cigar, cigar_length);
-                rightStrip(sequence, sequence_length);
-                rightStrip(quality, quality_length);
-
-                if (q_name_length == 0 || t_name_length == 0 ||
-                    cigar_length == 0 || t_next_name_length == 0 ||
-                    sequence_length == 0 || quality_length == 0 ||
-                    (sequence_length > 1 && quality_length > 1 &&
-                    sequence_length != quality_length)) {
-
-                    throw std::invalid_argument("[bioparser::SamParser] error: "
-                        "invalid file format!");
-                }
-
-                dst.emplace_back(std::unique_ptr<T>(new T(q_name, q_name_length,
-                    flag, t_name, t_name_length, t_begin, mapping_quality,
-                    cigar, cigar_length, t_next_name, t_next_name_length,
-                    t_next_begin, template_length, sequence, sequence_length,
-                    quality, quality_length)));
-
-                ++num_objects;
-                current_bytes = 0;
-                line_length = 0;
+                create_T();
             } else {
                 line[line_length++] = c;
                 if (line_length == this->storage_.size()) {
@@ -882,6 +915,10 @@ inline bool SamParser<T>::parse(std::vector<std::unique_ptr<T>>& dst,
                     line = &(this->storage_[0]);
                 }
             }
+        }
+
+        if (is_end && current_bytes != 0) {
+            create_T();
         }
     }
 
