@@ -19,10 +19,6 @@ namespace bioparser {
 
 static const std::string version = "v2.1.0";
 
-constexpr std::uint32_t kSSS = 4 * 1024;
-constexpr std::uint32_t kMSS = 8 * 1024 * 1024;
-constexpr std::uint32_t kLSS = 512 * 1024 * 1024;
-
 /*!
  * @brief Parser absctract class
  */
@@ -236,7 +232,6 @@ inline bool FastaParser<T>::parse(std::vector<std::unique_ptr<T>>& dst,
 
     std::uint64_t total_bytes = 0;
     std::uint32_t line_num = 0;
-
     std::uint32_t storage_ptr = 0;
     std::uint32_t data_ptr = 0;
 
@@ -309,7 +304,7 @@ inline bool FastaParser<T>::parse(std::vector<std::unique_ptr<T>>& dst,
             this->buffer_.size());
         is_eof = this->buffer_bytes_ < this->buffer_.size();
 
-        if (storage_ptr + this->buffer_bytes_ > this->storage_.size()) {
+        if (storage_ptr + this->buffer_bytes_ >= this->storage_.size()) {
             this->storage_.resize(this->storage_.size() * 2);
         }
     }
@@ -339,7 +334,6 @@ inline bool FastqParser<T>::parse(std::vector<std::unique_ptr<T>>& dst,
 
     std::uint64_t total_bytes = 0;
     std::uint32_t line_num = 0;
-
     std::uint32_t storage_ptr = 0;
     std::uint32_t data_ptr = 0;
     std::uint32_t comm_ptr = 0;
@@ -427,7 +421,7 @@ inline bool FastqParser<T>::parse(std::vector<std::unique_ptr<T>>& dst,
             this->buffer_.size());
         is_eof = this->buffer_bytes_ < this->buffer_.size();
 
-        if (storage_ptr + this->buffer_bytes_ > this->storage_.size()) {
+        if (storage_ptr + this->buffer_bytes_ >= this->storage_.size()) {
             this->storage_.resize(this->storage_.size() * 2);
         }
     }
@@ -441,7 +435,7 @@ inline bool FastqParser<T>::parse(std::vector<std::unique_ptr<T>>& dst,
 
 template<class T>
 inline MhapParser<T>::MhapParser(gzFile input_file)
-        : Parser<T>(input_file, kSSS) {
+        : Parser<T>(input_file, 4096) {
 }
 
 template<class T>
@@ -453,17 +447,10 @@ inline bool MhapParser<T>::parse(std::vector<std::unique_ptr<T>>& dst,
     std::uint64_t max_bytes, bool) {
 
     auto input_file = this->input_file_.get();
-    bool is_end = gzeof(input_file);
-    bool status = false;
-    std::uint64_t current_bytes = 0;
+    bool is_eof = false;
+
     std::uint64_t total_bytes = 0;
-    std::uint64_t num_objects = 0;
-    std::uint64_t last_object_id = num_objects;
-
-    const std::uint32_t kMhapObjectLength = 12;
-
-    char* line = &(this->storage_[0]);
-    std::uint32_t line_length = 0;
+    std::uint32_t storage_ptr = 0;
 
     std::uint64_t a_id = 0, b_id = 0;
     std::uint32_t a_rc = 0, a_begin = 0, a_end = 0, a_length = 0, b_rc = 0,
@@ -471,46 +458,46 @@ inline bool MhapParser<T>::parse(std::vector<std::unique_ptr<T>>& dst,
     double error = 0;
 
     auto create_T = [&] () -> void {
-        line[line_length] = 0;
-        rightStrip(line, line_length);
+        this->storage_[storage_ptr] = 0;
+        rightStrip(&(this->storage_[0]), storage_ptr);
 
         std::uint32_t num_values = 0, begin = 0;
         while (true) {
             std::uint32_t end = begin;
-            for (std::uint32_t j = begin; j < line_length; ++j) {
-                if (line[j] == ' ') {
+            for (std::uint32_t j = begin; j < storage_ptr; ++j) {
+                if (this->storage_[j] == ' ') {
                     end = j;
                     break;
                 }
             }
             if (end == begin) {
-                end = line_length;
+                end = storage_ptr;
             }
-            line[end] = 0;
+            this->storage_[end] = 0;
 
             switch (num_values) {
-                case 0: a_id = atoll(&line[begin]); break;
-                case 1: b_id = atoll(&line[begin]); break;
-                case 2: error = atof(&line[begin]); break;
-                case 3: minmers = atoi(&line[begin]); break;
-                case 4: a_rc = atoi(&line[begin]); break;
-                case 5: a_begin = atoi(&line[begin]); break;
-                case 6: a_end = atoi(&line[begin]); break;
-                case 7: a_length = atoi(&line[begin]); break;
-                case 8: b_rc = atoi(&line[begin]); break;
-                case 9: b_begin = atoi(&line[begin]); break;
-                case 10: b_end = atoi(&line[begin]); break;
-                case 11: b_length = atoi(&line[begin]); break;
+                case 0: a_id = atoll(&(this->storage_[begin])); break;
+                case 1: b_id = atoll(&(this->storage_[begin])); break;
+                case 2: error = atof(&(this->storage_[begin])); break;
+                case 3: minmers = atoi(&(this->storage_[begin])); break;
+                case 4: a_rc = atoi(&(this->storage_[begin])); break;
+                case 5: a_begin = atoi(&(this->storage_[begin])); break;
+                case 6: a_end = atoi(&(this->storage_[begin])); break;
+                case 7: a_length = atoi(&(this->storage_[begin])); break;
+                case 8: b_rc = atoi(&(this->storage_[begin])); break;
+                case 9: b_begin = atoi(&(this->storage_[begin])); break;
+                case 10: b_end = atoi(&(this->storage_[begin])); break;
+                case 11: b_length = atoi(&(this->storage_[begin])); break;
                 default: break;
             }
             num_values++;
-            if (end == line_length || num_values == kMhapObjectLength) {
+            if (end == storage_ptr || num_values == 12) {
                 break;
             }
             begin = end + 1;
         }
 
-        if (num_values != kMhapObjectLength) {
+        if (num_values != 12) {
             throw std::invalid_argument("[bioparser::MhapParser] error: "
                 "invalid file format!");
         }
@@ -519,51 +506,59 @@ inline bool MhapParser<T>::parse(std::vector<std::unique_ptr<T>>& dst,
             minmers, a_rc, a_begin, a_end, a_length, b_rc, b_begin,
             b_end, b_length)));
 
-        ++num_objects;
-        current_bytes = 0;
-        line_length = 0;
+        total_bytes += storage_ptr;
+        storage_ptr = 0;
     };
 
-    while (!is_end) {
+    while (true) {
 
-        std::uint64_t read_bytes = gzfread(this->buffer_.data(), sizeof(char),
-            this->buffer_.size(), input_file);
-        is_end = gzeof(input_file);
-
-        total_bytes += read_bytes;
-        if (max_bytes != 0 && total_bytes > max_bytes) {
-            if (last_object_id == num_objects) {
-                throw std::invalid_argument("[bioparser::MhapParser] error: "
-                    "too small chunk size!");
+        std::uint32_t begin_ptr = this->buffer_ptr_;
+        for (; this->buffer_ptr_ < this->buffer_bytes_; ++this->buffer_ptr_) {
+            auto c = this->buffer_[this->buffer_ptr_];
+            if (c == '\n') {
+                std::memcpy(&this->storage_[storage_ptr],
+                    &this->buffer_[begin_ptr],
+                    this->buffer_ptr_ - begin_ptr);
+                storage_ptr += this->buffer_ptr_ - begin_ptr;
+                begin_ptr = this->buffer_ptr_ + 1;
+                create_T();
+                if (total_bytes >= max_bytes) {
+                    ++this->buffer_ptr_;
+                    return true;
+                }
             }
-            gzseek(input_file, -(current_bytes + read_bytes), SEEK_CUR);
-            status = true;
+        }
+        if (begin_ptr < this->buffer_ptr_) {
+            std::memcpy(&this->storage_[storage_ptr],
+                &this->buffer_[begin_ptr],
+                this->buffer_ptr_ - begin_ptr);
+            storage_ptr += this->buffer_ptr_ - begin_ptr;
+        }
+        this->buffer_ptr_ = 0;
+
+        if (is_eof) {
             break;
         }
 
-        for (std::uint32_t i = 0; i < read_bytes; ++i) {
+        this->buffer_bytes_ = gzread(input_file, this->buffer_.data(),
+            this->buffer_.size());
+        is_eof = this->buffer_bytes_ < this->buffer_.size();
 
-            auto c = this->buffer_[i];
-            ++current_bytes;
-
-            if (c == '\n') {
-                create_T();
-            } else {
-                line[line_length++] = c;
-            }
-        }
-
-        if (is_end && current_bytes != 0) {
-            create_T();
+        if (storage_ptr + this->buffer_bytes_ >= this->storage_.size()) {
+            this->storage_.resize(this->storage_.size() * 2);
         }
     }
 
-    return status;
+    if (storage_ptr != 0) {
+        create_T();
+    }
+
+    return false;
 }
 
 template<class T>
 inline PafParser<T>::PafParser(gzFile input_file)
-        : Parser<T>(input_file, 3 * kSSS + kMSS) {
+        : Parser<T>(input_file, 16384) {
 }
 
 template<class T>
@@ -575,78 +570,67 @@ inline bool PafParser<T>::parse(std::vector<std::unique_ptr<T>>& dst,
     std::uint64_t max_bytes, bool trim) {
 
     auto input_file = this->input_file_.get();
-    bool is_end = gzeof(input_file);
-    bool status = false;
-    std::uint64_t current_bytes = 0;
+    bool is_eof = false;
+
     std::uint64_t total_bytes = 0;
-    std::uint64_t num_objects = 0;
-    std::uint64_t last_object_id = num_objects;
-
-    const std::uint32_t kPafObjectLength = 12;
-
-    char* line = &(this->storage_[0]);
-    std::uint32_t line_length = 0;
+    std::uint32_t storage_ptr = 0;
 
     const char* q_name = nullptr, * t_name = nullptr;
-
     std::uint32_t q_name_length = 0, q_length = 0, q_begin = 0, q_end = 0,
         t_name_length = 0, t_length = 0, t_begin = 0, t_end = 0,
         matching_bases = 0, overlap_length = 0, mapping_quality = 0;
     char orientation = '\0';
 
     auto create_T = [&] () -> void {
-        line[line_length] = 0;
-        rightStrip(line, line_length);
+        this->storage_[storage_ptr] = 0;
+        rightStrip(&(this->storage_[0]), storage_ptr);
 
         std::uint32_t num_values = 0, begin = 0;
         while (true) {
             std::uint32_t end = begin;
-            for (std::uint32_t j = begin; j < line_length; ++j) {
-                if (line[j] == '\t') {
+            for (std::uint32_t j = begin; j < storage_ptr; ++j) {
+                if (this->storage_[j] == '\t') {
                     end = j;
                     break;
                 }
             }
             if (end == begin) {
-                end = line_length;
+                end = storage_ptr;
             }
-            line[end] = 0;
+            this->storage_[end] = 0;
 
             switch (num_values) {
                 case 0:
-                    q_name = &line[begin];
+                    q_name = &(this->storage_[begin]);
                     q_name_length = end - begin;
                     break;
-                case 1: q_length = atoi(&line[begin]); break;
-                case 2: q_begin = atoi(&line[begin]); break;
-                case 3: q_end = atoi(&line[begin]); break;
-                case 4: orientation = line[begin]; break;
+                case 1: q_length = atoi(&(this->storage_[begin])); break;
+                case 2: q_begin = atoi(&(this->storage_[begin])); break;
+                case 3: q_end = atoi(&(this->storage_[begin])); break;
+                case 4: orientation = this->storage_[begin]; break;
                 case 5:
-                    t_name = &line[begin];
+                    t_name = &(this->storage_[begin]);
                     t_name_length = end - begin;
                     break;
-                case 6: t_length = atoi(&line[begin]); break;
-                case 7: t_begin = atoi(&line[begin]); break;
-                case 8: t_end = atoi(&line[begin]); break;
-                case 9: matching_bases = atoi(&line[begin]); break;
-                case 10: overlap_length = atoi(&line[begin]); break;
-                case 11: mapping_quality = atoi(&line[begin]); break;
+                case 6: t_length = atoi(&(this->storage_[begin])); break;
+                case 7: t_begin = atoi(&(this->storage_[begin])); break;
+                case 8: t_end = atoi(&(this->storage_[begin])); break;
+                case 9: matching_bases = atoi(&(this->storage_[begin])); break;
+                case 10: overlap_length = atoi(&(this->storage_[begin])); break;
+                case 11: mapping_quality = atoi(&(this->storage_[begin])); break;
                 default: break;
             }
             num_values++;
-            if (end == line_length || num_values == kPafObjectLength) {
+            if (end == storage_ptr || num_values == 12) {
                 break;
             }
             begin = end + 1;
         }
 
-        if (num_values != kPafObjectLength) {
+        if (num_values != 12) {
             throw std::invalid_argument("[bioparser::PafParser] error: "
                 "invalid file format!");
         }
-
-        q_name_length = std::min(q_name_length, kSSS);
-        t_name_length = std::min(t_name_length, kSSS);
 
         if (trim) {
             rightStripHard(q_name, q_name_length);
@@ -666,55 +650,59 @@ inline bool PafParser<T>::parse(std::vector<std::unique_ptr<T>>& dst,
             t_length, t_begin, t_end, matching_bases, overlap_length,
             mapping_quality)));
 
-        ++num_objects;
-        current_bytes = 0;
-        line_length = 0;
+        total_bytes += storage_ptr;
+        storage_ptr = 0;
     };
 
-    while (!is_end) {
+    while (true) {
 
-        std::uint64_t read_bytes = gzfread(this->buffer_.data(), sizeof(char),
-            this->buffer_.size(), input_file);
-        is_end = gzeof(input_file);
-
-        total_bytes += read_bytes;
-        if (max_bytes != 0 && total_bytes > max_bytes) {
-            if (last_object_id == num_objects) {
-                throw std::invalid_argument("[bioparser::PafParser] error: "
-                    "too small chunk size!");
-            }
-            gzseek(input_file, -(current_bytes + read_bytes), SEEK_CUR);
-            status = true;
-            break;
-        }
-
-        for (std::uint32_t i = 0; i < read_bytes; ++i) {
-
-            auto c = this->buffer_[i];
-            ++current_bytes;
-
+        std::uint32_t begin_ptr = this->buffer_ptr_;
+        for (; this->buffer_ptr_ < this->buffer_bytes_; ++this->buffer_ptr_) {
+            auto c = this->buffer_[this->buffer_ptr_];
             if (c == '\n') {
+                std::memcpy(&this->storage_[storage_ptr],
+                    &this->buffer_[begin_ptr],
+                    this->buffer_ptr_ - begin_ptr);
+                storage_ptr += this->buffer_ptr_ - begin_ptr;
+                begin_ptr = this->buffer_ptr_ + 1;
                 create_T();
-            } else {
-                line[line_length++] = c;
-                if (line_length == this->storage_.size()) {
-                    this->storage_.resize(3 * kSSS + kLSS);
-                    line = &(this->storage_[0]);
+                if (total_bytes >= max_bytes) {
+                    ++this->buffer_ptr_;
+                    return true;
                 }
             }
         }
+        if (begin_ptr < this->buffer_ptr_) {
+            std::memcpy(&this->storage_[storage_ptr],
+                &this->buffer_[begin_ptr],
+                this->buffer_ptr_ - begin_ptr);
+            storage_ptr += this->buffer_ptr_ - begin_ptr;
+        }
+        this->buffer_ptr_ = 0;
 
-        if (is_end && current_bytes != 0) {
-            create_T();
+        if (is_eof) {
+            break;
+        }
+
+        this->buffer_bytes_ = gzread(input_file, this->buffer_.data(),
+            this->buffer_.size());
+        is_eof = this->buffer_bytes_ < this->buffer_.size();
+
+        if (storage_ptr + this->buffer_bytes_ >= this->storage_.size()) {
+            this->storage_.resize(this->storage_.size() * 2);
         }
     }
 
-    return status;
+    if (storage_ptr != 0) {
+        create_T();
+    }
+
+    return false;
 }
 
 template<class T>
 inline SamParser<T>::SamParser(gzFile input_file)
-        : Parser<T>(input_file, 5 * kSSS + 2 * kMSS) {
+        : Parser<T>(input_file, 16384) {
 }
 
 template<class T>
@@ -726,92 +714,79 @@ inline bool SamParser<T>::parse(std::vector<std::unique_ptr<T>>& dst,
     std::uint64_t max_bytes, bool trim) {
 
     auto input_file = this->input_file_.get();
-    bool is_end = gzeof(input_file);
-    bool status = false;
-    std::uint64_t current_bytes = 0;
+    bool is_eof = false;
+
     std::uint64_t total_bytes = 0;
-    std::uint64_t num_objects = 0;
-    std::uint64_t last_object_id = num_objects;
-
-    const std::uint32_t kSamObjectLength = 11;
-
-    char* line = &(this->storage_[0]);
-    std::uint32_t line_length = 0;
+    std::uint32_t storage_ptr = 0;
 
     const char* q_name = nullptr, * t_name = nullptr, * cigar = nullptr,
         * t_next_name = nullptr, * sequence = nullptr, * quality = nullptr;
-
     std::uint32_t q_name_length = 0, flag = 0, t_name_length = 0, t_begin = 0,
         mapping_quality = 0, cigar_length = 0, t_next_name_length = 0,
         t_next_begin = 0, template_length = 0, sequence_length = 0,
         quality_length = 0;
 
     auto create_T = [&] () -> void {
-
-        line[line_length] = 0;
-        rightStrip(line, line_length);
+        this->storage_[storage_ptr] = 0;
+        rightStrip(&(this->storage_[0]), storage_ptr);
 
         std::uint32_t num_values = 0, begin = 0;
         while (true) {
             std::uint32_t end = begin;
-            for (std::uint32_t j = begin; j < line_length; ++j) {
-                if (line[j] == '\t') {
+            for (std::uint32_t j = begin; j < storage_ptr; ++j) {
+                if (this->storage_[j] == '\t') {
                     end = j;
                     break;
                 }
             }
             if (end == begin) {
-                end = line_length;
+                end = storage_ptr;
             }
-            line[end] = 0;
+            this->storage_[end] = 0;
 
             switch (num_values) {
                 case 0:
-                    q_name = &line[begin];
+                    q_name = &(this->storage_[begin]);
                     q_name_length = end - begin;
                     break;
-                case 1: flag = atoi(&line[begin]); break;
+                case 1: flag = atoi(&(this->storage_[begin])); break;
                 case 2:
-                    t_name = &line[begin];
+                    t_name = &(this->storage_[begin]);
                     t_name_length = end - begin;
                     break;
-                case 3: t_begin = atoi(&line[begin]); break;
-                case 4: mapping_quality = atoi(&line[begin]); break;
+                case 3: t_begin = atoi(&(this->storage_[begin])); break;
+                case 4: mapping_quality = atoi(&(this->storage_[begin])); break;
                 case 5:
-                    cigar = &line[begin];
+                    cigar = &(this->storage_[begin]);
                     cigar_length = end - begin;
                     break;
                 case 6:
-                    t_next_name = &line[begin];
+                    t_next_name = &(this->storage_[begin]);
                     t_next_name_length = end - begin;
                     break;
-                case 7: t_next_begin = atoi(&line[begin]); break;
-                case 8: template_length = atoi(&line[begin]); break;
+                case 7: t_next_begin = atoi(&(this->storage_[begin])); break;
+                case 8: template_length = atoi(&(this->storage_[begin])); break;
                 case 9:
-                    sequence = &line[begin];
+                    sequence = &(this->storage_[begin]);
                     sequence_length = end - begin;
                     break;
                 case 10:
-                    quality = &line[begin];
+                    quality = &(this->storage_[begin]);
                     quality_length = end - begin;
                     break;
                 default: break;
             }
             num_values++;
-            if (end == line_length || num_values == kSamObjectLength) {
+            if (end == storage_ptr || num_values == 11) {
                 break;
             }
             begin = end + 1;
         }
 
-        if (num_values != kSamObjectLength) {
+        if (num_values != 11) {
             throw std::invalid_argument("[bioparser::SamParser] error: "
                 "invalid file format!");
         }
-
-        q_name_length = std::min(q_name_length, kSSS);
-        t_name_length = std::min(t_name_length, kSSS);
-        t_next_name_length = std::min(t_next_name_length, kSSS);
 
         if (trim) {
             rightStripHard(q_name, q_name_length);
@@ -843,55 +818,59 @@ inline bool SamParser<T>::parse(std::vector<std::unique_ptr<T>>& dst,
             t_next_begin, template_length, sequence, sequence_length,
             quality, quality_length)));
 
-        ++num_objects;
-        current_bytes = 0;
-        line_length = 0;
+        total_bytes += storage_ptr;
+        storage_ptr = 0;
     };
 
-    while (!is_end) {
+    while (true) {
 
-        std::uint64_t read_bytes = gzfread(this->buffer_.data(), sizeof(char),
-            this->buffer_.size(), input_file);
-        is_end = gzeof(input_file);
-
-        total_bytes += read_bytes;
-        if (max_bytes != 0 && total_bytes > max_bytes) {
-            if (last_object_id == num_objects) {
-                throw std::invalid_argument("[bioparser::SamParser] error: "
-                    "too small chunk size!");
+        std::uint32_t begin_ptr = this->buffer_ptr_;
+        for (; this->buffer_ptr_ < this->buffer_bytes_; ++this->buffer_ptr_) {
+            auto c = this->buffer_[this->buffer_ptr_];
+            if (c == '\n') {
+                if (this->buffer_[begin_ptr] == '@') {
+                    begin_ptr = this->buffer_ptr_ + 1;
+                    storage_ptr = 0;
+                    continue;
+                }
+                std::memcpy(&this->storage_[storage_ptr],
+                    &this->buffer_[begin_ptr],
+                    this->buffer_ptr_ - begin_ptr);
+                storage_ptr += this->buffer_ptr_ - begin_ptr;
+                begin_ptr = this->buffer_ptr_ + 1;
+                create_T();
+                if (total_bytes >= max_bytes) {
+                    ++this->buffer_ptr_;
+                    return true;
+                }
             }
-            gzseek(input_file, -(current_bytes + read_bytes), SEEK_CUR);
-            status = true;
+        }
+        if (begin_ptr < this->buffer_ptr_) {
+            std::memcpy(&this->storage_[storage_ptr],
+                &this->buffer_[begin_ptr],
+                this->buffer_ptr_ - begin_ptr);
+            storage_ptr += this->buffer_ptr_ - begin_ptr;
+        }
+        this->buffer_ptr_ = 0;
+
+        if (is_eof) {
             break;
         }
 
-        for (std::uint32_t i = 0; i < read_bytes; ++i) {
+        this->buffer_bytes_ = gzread(input_file, this->buffer_.data(),
+            this->buffer_.size());
+        is_eof = this->buffer_bytes_ < this->buffer_.size();
 
-            auto c = this->buffer_[i];
-            ++current_bytes;
-
-            if (c == '\n') {
-                if (line[0] == '@') {
-                    line_length = 0;
-                    current_bytes = 0;
-                    continue;
-                }
-                create_T();
-            } else {
-                line[line_length++] = c;
-                if (line_length == this->storage_.size()) {
-                    this->storage_.resize(5 * kSSS + 2 * kLSS);
-                    line = &(this->storage_[0]);
-                }
-            }
-        }
-
-        if (is_end && current_bytes != 0) {
-            create_T();
+        if (storage_ptr + this->buffer_bytes_ >= this->storage_.size()) {
+            this->storage_.resize(this->storage_.size() * 2);
         }
     }
 
-    return status;
+    if (storage_ptr != 0) {
+        create_T();
+    }
+
+    return false;
 }
 
 }

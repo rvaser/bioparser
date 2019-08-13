@@ -344,10 +344,8 @@ TEST_F(BioparserFastaTest, ParseInChunks) {
 
     SetUp(bioparser_test_data_path + "sample.fasta");
 
-    std::uint32_t size_in_bytes = 64 * 1024;
     std::vector<std::unique_ptr<Read>> reads;
-    while (parser->parse(reads, size_in_bytes)) {
-    }
+    while (parser->parse(reads, 65536));
 
     std::uint32_t name_size = 0, sequence_size = 0, quality_size = 0;
     reads_summary(name_size, sequence_size, quality_size, reads);
@@ -362,10 +360,8 @@ TEST_F(BioparserFastaTest, CompressedParseInChunks) {
 
     SetUp(bioparser_test_data_path + "sample.fasta.gz");
 
-    std::uint32_t size_in_bytes = 64 * 1024;
     std::vector<std::unique_ptr<Read>> reads;
-    while (parser->parse(reads, size_in_bytes)) {
-    }
+    while (parser->parse(reads, 65536));
 
     std::uint32_t name_size = 0, sequence_size = 0, quality_size = 0;
     reads_summary(name_size, sequence_size, quality_size, reads);
@@ -413,11 +409,9 @@ TEST_F(BioparserFastaTest, ParseAndReset) {
         quality_size = 0;
     reads_summary(name_size, sequence_size, quality_size, reads);
 
-    std::uint32_t size_in_bytes = 64 * 1024;
     reads.clear();
     parser->reset();
-    while (parser->parse(reads, size_in_bytes)) {
-    }
+    while (parser->parse(reads, 65536));
 
     std::uint32_t num_reads_new = reads.size(), name_size_new = 0,
         sequence_size_new = 0, quality_size_new = 0;
@@ -440,11 +434,9 @@ TEST_F(BioparserFastaTest, CompressedParseAndReset) {
         quality_size = 0;
     reads_summary(name_size, sequence_size, quality_size, reads);
 
-    std::uint32_t size_in_bytes = 64 * 1024;
     reads.clear();
     parser->reset();
-    while (parser->parse(reads, size_in_bytes)) {
-    }
+    while (parser->parse(reads, 65536));
 
     std::uint32_t num_reads_new = reads.size(), name_size_new = 0,
         sequence_size_new = 0, quality_size_new = 0;
@@ -492,10 +484,8 @@ TEST_F(BioparserFastqTest, ParseInChunks) {
 
     SetUp(bioparser_test_data_path + "sample.fastq");
 
-    std::uint32_t size_in_bytes = 64 * 1024;
     std::vector<std::unique_ptr<Read>> reads;
-    while (parser->parse(reads, size_in_bytes)) {
-    }
+    while (parser->parse(reads, 65536));
 
     std::uint32_t name_size = 0, sequence_size = 0, quality_size = 0;
     reads_summary(name_size, sequence_size, quality_size, reads);
@@ -510,10 +500,8 @@ TEST_F(BioparserFastqTest, CompressedParseInChunks) {
 
     SetUp(bioparser_test_data_path + "sample.fastq.gz");
 
-    std::uint32_t size_in_bytes = 64 * 1024;
     std::vector<std::unique_ptr<Read>> reads;
-    while (parser->parse(reads, size_in_bytes)) {
-    }
+    while (parser->parse(reads, 65536));
 
     std::uint32_t name_size = 0, sequence_size = 0, quality_size = 0;
     reads_summary(name_size, sequence_size, quality_size, reads);
@@ -586,10 +574,8 @@ TEST_F(BioparserMhapTest, ParseInChunks) {
 
     SetUp(bioparser_test_data_path + "sample.mhap");
 
-    std::uint32_t size_in_bytes = 64 * 1024;
     std::vector<std::unique_ptr<Overlap>> overlaps;
-    while (parser->parse(overlaps, size_in_bytes)) {
-    }
+    while (parser->parse(overlaps, 1024));
 
     std::uint32_t name_size = 0, total_value = 0;
     overlaps_summary(name_size, total_value, overlaps);
@@ -603,10 +589,8 @@ TEST_F(BioparserMhapTest, CompressedParseInChunks) {
 
     SetUp(bioparser_test_data_path + "sample.mhap.gz");
 
-    std::uint32_t size_in_bytes = 64 * 1024;
     std::vector<std::unique_ptr<Overlap>> overlaps;
-    while (parser->parse(overlaps, size_in_bytes)) {
-    }
+    while (parser->parse(overlaps, 1024));
 
     std::uint32_t name_size = 0, total_value = 0;
     overlaps_summary(name_size, total_value, overlaps);
@@ -678,10 +662,8 @@ TEST_F(BioparserPafTest, ParseInChunks) {
 
     SetUp(bioparser_test_data_path + "sample.paf");
 
-    std::uint32_t size_in_bytes = 64 * 1024;
     std::vector<std::unique_ptr<Overlap>> overlaps;
-    while (parser->parse(overlaps, size_in_bytes)) {
-    }
+    while (parser->parse(overlaps, 1024));
 
     std::uint32_t name_size = 0, total_value = 0;
     overlaps_summary(name_size, total_value, overlaps);
@@ -695,10 +677,8 @@ TEST_F(BioparserPafTest, CompressedParseInChunks) {
 
     SetUp(bioparser_test_data_path + "sample.paf.gz");
 
-    std::uint32_t size_in_bytes = 64 * 1024;
     std::vector<std::unique_ptr<Overlap>> overlaps;
-    while (parser->parse(overlaps, size_in_bytes)) {
-    }
+    while (parser->parse(overlaps, 1024));
 
     std::uint32_t name_size = 0, total_value = 0;
     overlaps_summary(name_size, total_value, overlaps);
@@ -770,10 +750,8 @@ TEST_F(BioparserSamTest, ParseInChunks) {
 
     SetUp(bioparser_test_data_path + "sample.sam");
 
-    std::uint32_t size_in_bytes = 64 * 1024;
     std::vector<std::unique_ptr<Alignment>> alignments;
-    while (parser->parse(alignments, size_in_bytes)) {
-    }
+    while (parser->parse(alignments, 1024));
 
     std::uint32_t string_size = 0, total_value = 0;
     alignments_summary(string_size, total_value, alignments);
@@ -787,10 +765,8 @@ TEST_F(BioparserSamTest, CompressedParseInChunks) {
 
     SetUp(bioparser_test_data_path + "sample.sam.gz");
 
-    std::uint32_t size_in_bytes = 64 * 1024;
     std::vector<std::unique_ptr<Alignment>> alignments;
-    while (parser->parse(alignments, size_in_bytes)) {
-    }
+    while (parser->parse(alignments, 1024));
 
     std::uint32_t string_size = 0, total_value = 0;
     alignments_summary(string_size, total_value, alignments);
