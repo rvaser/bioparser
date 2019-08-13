@@ -402,36 +402,6 @@ TEST_F(BioparserFastaTest, CompressedFormatError) {
     }
 }
 
-TEST_F(BioparserFastaTest, ChunkSizeError) {
-
-    SetUp(bioparser_test_data_path + "sample.fasta");
-
-    std::uint32_t size_in_bytes = 10 * 1024;
-    std::vector<std::unique_ptr<Read>> reads;
-
-    try {
-        parser->parse(reads, size_in_bytes);
-    } catch (std::invalid_argument& exception) {
-        EXPECT_STREQ(exception.what(), "[bioparser::FastaParser] error: "
-            "too small chunk size!");
-    }
-}
-
-TEST_F(BioparserFastaTest, CompressedChunkSizeError) {
-
-    SetUp(bioparser_test_data_path + "sample.fasta.gz");
-
-    std::uint32_t size_in_bytes = 10 * 1024;
-    std::vector<std::unique_ptr<Read>> reads;
-
-    try {
-        parser->parse(reads, size_in_bytes);
-    } catch (std::invalid_argument& exception) {
-        EXPECT_STREQ(exception.what(), "[bioparser::FastaParser] error: "
-            "too small chunk size!");
-    }
-}
-
 TEST_F(BioparserFastaTest, ParseAndReset) {
 
     SetUp(bioparser_test_data_path + "sample.fasta");
@@ -579,36 +549,6 @@ TEST_F(BioparserFastqTest, CompressedFormatError) {
     } catch (std::invalid_argument& exception) {
         EXPECT_STREQ(exception.what(), "[bioparser::FastqParser] error: "
             "invalid file format!");
-    }
-}
-
-TEST_F(BioparserFastqTest, ChunkSizeError) {
-
-    SetUp(bioparser_test_data_path + "sample.fastq");
-
-    std::uint32_t size_in_bytes = 10 * 1024;
-    std::vector<std::unique_ptr<Read>> reads;
-
-    try {
-        parser->parse(reads, size_in_bytes);
-    } catch (std::invalid_argument& exception) {
-        EXPECT_STREQ(exception.what(), "[bioparser::FastqParser] error: "
-            "too small chunk size!");
-    }
-}
-
-TEST_F(BioparserFastqTest, CompressedChunkSizeError) {
-
-    SetUp(bioparser_test_data_path + "sample.fastq.gz");
-
-    std::uint32_t size_in_bytes = 10 * 1024;
-    std::vector<std::unique_ptr<Read>> reads;
-
-    try {
-        parser->parse(reads, size_in_bytes);
-    } catch (std::invalid_argument& exception) {
-        EXPECT_STREQ(exception.what(), "[bioparser::FastqParser] error: "
-            "too small chunk size!");
     }
 }
 

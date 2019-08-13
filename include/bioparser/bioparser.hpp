@@ -7,6 +7,7 @@
 #pragma once
 
 #include <cstdint>
+#include <cstring>
 #include <exception>
 #include <memory>
 #include <string>
@@ -16,11 +17,8 @@
 
 namespace bioparser {
 
-static const std::string version = "v2.0.1";
+static const std::string version = "v2.1.0";
 
-constexpr std::uint32_t kBufferSize = 64 * 1024;
-
-// Small/Medium/Large Storage Size
 constexpr std::uint32_t kSSS = 4 * 1024;
 constexpr std::uint32_t kMSS = 8 * 1024 * 1024;
 constexpr std::uint32_t kLSS = 512 * 1024 * 1024;
@@ -67,7 +65,6 @@ public:
 
     bool parse(std::vector<std::shared_ptr<T>>& dst, std::uint64_t max_bytes,
         bool trim = true);
-
 protected:
     Parser(gzFile input_file, std::uint32_t storage_size);
     Parser(const Parser&) = delete;
@@ -75,6 +72,8 @@ protected:
 
     std::unique_ptr<gzFile_s, int(*)(gzFile)> input_file_;
     std::vector<char> buffer_;
+    std::uint32_t buffer_ptr_;
+    std::uint32_t buffer_bytes_;
     std::vector<char> storage_;
 };
 
@@ -88,7 +87,6 @@ public:
 
     friend std::unique_ptr<Parser<T>>
         createParser<bioparser::FastaParser, T>(const std::string& path);
-
 private:
     FastaParser(gzFile input_file);
     FastaParser(const FastaParser&) = delete;
@@ -105,7 +103,6 @@ public:
 
     friend std::unique_ptr<Parser<T>>
         createParser<bioparser::FastqParser, T>(const std::string& path);
-
 private:
     FastqParser(gzFile input_file);
     FastqParser(const FastqParser&) = delete;
@@ -122,7 +119,6 @@ public:
 
     friend std::unique_ptr<Parser<T>>
         createParser<bioparser::MhapParser, T>(const std::string& path);
-
 private:
     MhapParser(gzFile input_file);
     MhapParser(const MhapParser&) = delete;
@@ -139,7 +135,6 @@ public:
 
     friend std::unique_ptr<Parser<T>>
         createParser<bioparser::PafParser, T>(const std::string& path);
-
 private:
     PafParser(gzFile input_file);
     PafParser(const PafParser&) = delete;
@@ -156,7 +151,6 @@ public:
 
     friend std::unique_ptr<Parser<T>>
         createParser<bioparser::SamParser, T>(const std::string& path);
-
 private:
     SamParser(gzFile input_file);
     SamParser(const SamParser&) = delete;
@@ -195,8 +189,8 @@ inline std::unique_ptr<Parser<T>> createParser(const std::string& path) {
 
 template<class T>
 inline Parser<T>::Parser(gzFile input_file, std::uint32_t storage_size)
-        : input_file_(input_file, gzclose), buffer_(kBufferSize, 0),
-        storage_(storage_size, 0) {
+        : input_file_(input_file, gzclose), buffer_(65536, 0),
+        buffer_ptr_(0), buffer_bytes_(0), storage_(storage_size, 0) {
 }
 
 template<class T>
@@ -205,7 +199,9 @@ inline Parser<T>::~Parser() {
 
 template<class T>
 inline void Parser<T>::reset() {
-    gzseek(this->input_file_.get(), 0, SEEK_SET);
+    gzseek(input_file_.get(), 0, SEEK_SET);
+    buffer_ptr_ = 0;
+    buffer_bytes_ = 0;
 }
 
 template<class T>
@@ -213,7 +209,7 @@ inline bool Parser<T>::parse(std::vector<std::shared_ptr<T>>& dst,
     std::uint64_t max_bytes, bool trim) {
 
     std::vector<std::unique_ptr<T>> tmp;
-    auto ret = this->parse_objects(tmp, max_bytes, trim);
+    auto ret = parse_objects(tmp, max_bytes, trim);
 
     dst.reserve(dst.size() + tmp.size());
     for (auto& it: tmp) {
@@ -224,7 +220,7 @@ inline bool Parser<T>::parse(std::vector<std::shared_ptr<T>>& dst,
 
 template<class T>
 inline FastaParser<T>::FastaParser(gzFile input_file)
-        : Parser<T>(input_file, kSSS + kMSS) {
+        : Parser<T>(input_file, 4194304) {
 }
 
 template<class T>
@@ -235,109 +231,99 @@ template<class T>
 inline bool FastaParser<T>::parse(std::vector<std::unique_ptr<T>>& dst,
     std::uint64_t max_bytes, bool trim) {
 
-    auto input_file = this->input_file_.get();
-    bool is_end = gzeof(input_file);
-    bool is_valid = false;
-    bool status = false;
-    std::uint64_t current_bytes = 0;
+    auto input_file = Parser<T>::input_file_.get();
+    bool is_eof = false;
+
     std::uint64_t total_bytes = 0;
-    std::uint64_t num_objects = 0;
-    std::uint64_t last_object_id = num_objects;
-    std::uint32_t line_number = 0;
+    std::uint32_t line_num = 0;
 
-    char* name = &(this->storage_[0]);
-    std::uint32_t name_length = 0;
-
-    char* sequence = &(this->storage_[kSSS]);
-    std::uint32_t sequence_length = 0;
+    std::uint32_t storage_ptr = 0;
+    std::uint32_t data_ptr = 0;
 
     auto create_T = [&] () -> void {
-        if (trim) {
-            rightStripHard(name, name_length);
-        } else {
-            rightStrip(name, name_length);
-        }
-        rightStrip(sequence, sequence_length);
 
-        if (name_length == 0 || name[0] != '>' || sequence_length == 0) {
+        if (data_ptr == 0) {
+            throw std::invalid_argument("[bioparser::FastaParser] error: "
+                "invalid file format!");
+        }
+
+        std::uint32_t name_len = data_ptr;
+        if (trim) {
+            rightStripHard(&(Parser<T>::storage_[0]), name_len);
+        } else {
+            rightStrip(&(Parser<T>::storage_[0]), name_len);
+        }
+        std::uint32_t data_len = storage_ptr - data_ptr;
+        rightStrip(&(Parser<T>::storage_[data_ptr]), data_len);
+
+        if (name_len == 0 || Parser<T>::storage_[0] != '>' || data_len == 0) {
             throw std::invalid_argument("[bioparser::FastaParser] error: "
                 "invalid file format!");
         }
 
         dst.emplace_back(std::unique_ptr<T>(new T(
-            (const char*) &(name[1]), name_length - 1,
-            (const char*) sequence, sequence_length)));
+            (const char*) &(Parser<T>::storage_[1]), name_len - 1,
+            (const char*) &(Parser<T>::storage_[data_ptr]), data_len)));
 
-        ++num_objects;
-        current_bytes = 1;
-        name_length = 1;
-        sequence_length = 0;
-        is_valid = false;
+        total_bytes += storage_ptr;
+        storage_ptr = 0;
+        data_ptr = 0;
     };
 
-    while (!is_end) {
+    while (true) {
 
-        std::uint64_t read_bytes = gzfread(this->buffer_.data(), sizeof(char),
-            this->buffer_.size(), input_file);
-        is_end = gzeof(input_file);
-
-        total_bytes += read_bytes;
-        if (max_bytes != 0 && total_bytes > max_bytes) {
-            if (last_object_id == num_objects) {
-                throw std::invalid_argument("[bioparser::FastaParser] error: "
-                    "too small chunk size!");
+        std::uint32_t begin_ptr = Parser<T>::buffer_ptr_;
+        for (; Parser<T>::buffer_ptr_ < Parser<T>::buffer_bytes_; ++Parser<T>::buffer_ptr_) {
+            auto c = Parser<T>::buffer_[Parser<T>::buffer_ptr_];
+            if (c == '\n') {
+                std::memcpy(&Parser<T>::storage_[storage_ptr],
+                    &Parser<T>::buffer_[begin_ptr],
+                    Parser<T>::buffer_ptr_ - begin_ptr);
+                storage_ptr += Parser<T>::buffer_ptr_ - begin_ptr;
+                begin_ptr = Parser<T>::buffer_ptr_ + 1;
+                if (line_num == 0) {
+                    data_ptr = storage_ptr;
+                    line_num = 1;
+                }
+            } else if (line_num == 1 && c == '>') {
+                line_num = 0;
+                create_T();
+                if (total_bytes >= max_bytes) {
+                    return true;
+                }
             }
-            gzseek(input_file, -(current_bytes + read_bytes), SEEK_CUR);
-            status = true;
+        }
+        if (begin_ptr < Parser<T>::buffer_ptr_) {
+            std::memcpy(&Parser<T>::storage_[storage_ptr],
+                &Parser<T>::buffer_[begin_ptr],
+                Parser<T>::buffer_ptr_ - begin_ptr);
+            storage_ptr += Parser<T>::buffer_ptr_ - begin_ptr;
+        }
+        Parser<T>::buffer_ptr_ = 0;
+
+        if (is_eof) {
             break;
         }
 
-        for (std::uint32_t i = 0; i < read_bytes; ++i) {
-            auto c = this->buffer_[i];
+        Parser<T>::buffer_bytes_ = gzread(input_file, Parser<T>::buffer_.data(),
+            Parser<T>::buffer_.size());
+        is_eof = Parser<T>::buffer_bytes_ < Parser<T>::buffer_.size();
 
-            if (c == '\n') {
-                ++line_number;
-            } else if (c == '>' && line_number != 0) {
-                is_valid = true;
-                line_number = 0;
-            } else {
-                switch (line_number) {
-                    case 0:
-                        if (name_length < kSSS) {
-                            if (!(name_length == 0 && isspace(c))) {
-                                name[name_length++] = c;
-                            }
-                        }
-                        break;
-                    default:
-                        sequence[sequence_length++] = c;
-                        if (sequence_length == kMSS) {
-                            this->storage_.resize(kSSS + kLSS, 0);
-                            name = &(this->storage_[0]);
-                            sequence = &(this->storage_[kSSS]);
-                        }
-                        break;
-                }
-            }
-
-            ++current_bytes;
-
-            if (is_valid) {
-                create_T();
-            }
-        }
-
-        if (is_end && current_bytes != 0) {
-            create_T();
+        if (storage_ptr + Parser<T>::buffer_bytes_ > Parser<T>::storage_.size()) {
+            Parser<T>::storage_.resize(Parser<T>::storage_.size() * 2);
         }
     }
 
-    return status;
+    if (storage_ptr != 0) {
+        create_T();
+    }
+
+    return false;
 }
 
 template<class T>
 inline FastqParser<T>::FastqParser(gzFile input_file)
-        : Parser<T>(input_file, kSSS + 2 * kMSS) {
+        : Parser<T>(input_file, 4194304) {
 }
 
 template<class T>
@@ -348,126 +334,109 @@ template<class T>
 inline bool FastqParser<T>::parse(std::vector<std::unique_ptr<T>>& dst,
     std::uint64_t max_bytes, bool trim) {
 
-    auto input_file = this->input_file_.get();
-    bool is_end = gzeof(input_file);
-    bool is_valid = false;
-    bool status = false;
-    std::uint64_t current_bytes = 0;
+    auto input_file = Parser<T>::input_file_.get();
+    bool is_eof = false;
+
     std::uint64_t total_bytes = 0;
-    std::uint64_t num_objects = 0;
-    std::uint64_t last_object_id = num_objects;
-    std::uint32_t line_number = 0;
+    std::uint32_t line_num = 0;
 
-    char* name = &(this->storage_[0]);
-    std::uint32_t name_length = 0;
-
-    char* sequence = &(this->storage_[kSSS]);
-    std::uint32_t sequence_length = 0;
-
-    char* quality = &(this->storage_[kSSS + kMSS]);
-    std::uint32_t quality_length = 0;
+    std::uint32_t storage_ptr = 0;
+    std::uint32_t data_ptr = 0;
+    std::uint32_t comm_ptr = 0;
+    std::uint32_t qual_ptr = 0;
 
     auto create_T = [&] () -> void {
-        if (trim) {
-            rightStripHard(name, name_length);
-        } else {
-            rightStrip(name, name_length);
-        }
-        rightStrip(sequence, sequence_length);
-        rightStrip(quality, quality_length);
 
-        if (name_length == 0 || name[0] != '@' || sequence_length == 0 ||
-            quality_length == 0 || sequence_length != quality_length) {
+        if (data_ptr == 0 || comm_ptr == 0 || qual_ptr == 0) {
+            throw std::invalid_argument("[bioparser::FastqParser] error: "
+                "invalid file format!");
+        }
+
+        std::uint32_t name_len = data_ptr;
+        if (trim) {
+            rightStripHard(&(Parser<T>::storage_[0]), name_len);
+        } else {
+            rightStrip(&(Parser<T>::storage_[0]), name_len);
+        }
+        std::uint32_t data_len = comm_ptr - data_ptr;
+        rightStrip(&(Parser<T>::storage_[data_ptr]), data_len);
+        std::uint32_t qual_len = storage_ptr - qual_ptr;
+        rightStrip(&(Parser<T>::storage_[qual_ptr]), qual_len);
+
+        if (name_len == 0 || Parser<T>::storage_[0] != '@' || data_len == 0 ||
+            qual_len == 0 || data_len != qual_len) {
             throw std::invalid_argument("[bioparser::FastqParser] error: "
                 "invalid file format!");
         }
 
         dst.emplace_back(std::unique_ptr<T>(new T(
-            (const char*) &(name[1]), name_length - 1,
-            (const char*) sequence, sequence_length,
-            (const char*) quality, quality_length)));
+            (const char*) &(Parser<T>::storage_[1]), name_len - 1,
+            (const char*) &(Parser<T>::storage_[data_ptr]), data_len,
+            (const char*) &(Parser<T>::storage_[qual_ptr]), qual_len)));
 
-        ++num_objects;
-        current_bytes = 0;
-        name_length = 0;
-        sequence_length = 0;
-        quality_length = 0;
-        is_valid = false;
+        total_bytes += storage_ptr;
+        storage_ptr = 0;
+        data_ptr = 0;
+        comm_ptr = 0;
+        qual_ptr = 0;
     };
 
-    while (!is_end) {
+    while (true) {
 
-        std::uint64_t read_bytes = gzfread(this->buffer_.data(), sizeof(char),
-            this->buffer_.size(), input_file);
-        is_end = gzeof(input_file);
-
-        total_bytes += read_bytes;
-        if (max_bytes != 0 && total_bytes > max_bytes) {
-            if (last_object_id == num_objects) {
-                throw std::invalid_argument("[bioparser::FastqParser] error: "
-                    "too small chunk size!");
+        std::uint32_t begin_ptr = Parser<T>::buffer_ptr_;
+        for (; Parser<T>::buffer_ptr_ < Parser<T>::buffer_bytes_; ++Parser<T>::buffer_ptr_) {
+            auto c = Parser<T>::buffer_[Parser<T>::buffer_ptr_];
+            if (c == '\n') {
+                std::memcpy(&(Parser<T>::storage_[storage_ptr]),
+                    &(Parser<T>::buffer_)[begin_ptr],
+                    Parser<T>::buffer_ptr_ - begin_ptr);
+                storage_ptr += Parser<T>::buffer_ptr_ - begin_ptr;
+                begin_ptr = Parser<T>::buffer_ptr_ + 1;
+                if (line_num == 0) {
+                    data_ptr = storage_ptr;
+                    line_num = 1;
+                } else if (line_num == 2) {
+                    qual_ptr = storage_ptr;
+                    line_num = 3;
+                } else if (line_num == 3 && storage_ptr - qual_ptr == comm_ptr - data_ptr) {
+                    line_num = 0;
+                    create_T();
+                    if (total_bytes >= max_bytes) {
+                        ++Parser<T>::buffer_ptr_;
+                        return true;
+                    }
+                }
+            } else if (line_num == 1 && c == '+') {
+                comm_ptr = storage_ptr;
+                line_num = 2;
             }
-            gzseek(input_file, -(current_bytes + read_bytes), SEEK_CUR);
-            status = true;
+        }
+        if (begin_ptr < Parser<T>::buffer_ptr_) {
+            std::memcpy(&(Parser<T>::storage_[storage_ptr]),
+                &(Parser<T>::buffer_[begin_ptr]),
+                Parser<T>::buffer_ptr_ - begin_ptr);
+            storage_ptr += Parser<T>::buffer_ptr_ - begin_ptr;
+        }
+        Parser<T>::buffer_ptr_ = 0;
+
+        if (is_eof) {
             break;
         }
 
-        for (std::uint32_t i = 0; i < read_bytes; ++i) {
-            auto c = this->buffer_[i];
+        Parser<T>::buffer_bytes_ = gzread(input_file, Parser<T>::buffer_.data(),
+            Parser<T>::buffer_.size());
+        is_eof = Parser<T>::buffer_bytes_ < Parser<T>::buffer_.size();
 
-            if (c == '\n') {
-                if (!(line_number == 1 || (line_number == 3 && quality_length < sequence_length))) {
-                    line_number = (line_number + 1) % 4;
-                    if (line_number == 0) {
-                        is_valid = true;
-                    }
-                }
-            } else if (line_number == 1 && c == '+') {
-                line_number = 2;
-            } else {
-                switch (line_number) {
-                    case 0:
-                        if (name_length < kSSS) {
-                            if (!(name_length == 0 && isspace(c))) {
-                                name[name_length++] = c;
-                            }
-                        }
-                        break;
-                    case 1:
-                        sequence[sequence_length++] = c;
-                        if (sequence_length == kMSS) {
-                            this->storage_.resize(kSSS + 2 * kLSS, 0);
-                            name = &(this->storage_[0]);
-                            sequence = &(this->storage_[kSSS]);
-                            quality = &(this->storage_[kSSS + kLSS]);
-                        }
-                        break;
-                    case 2:
-                        // comment line starting with '+'
-                        // do nothing
-                        break;
-                    case 3:
-                        quality[quality_length++] = c;
-                        break;
-                    default:
-                        // never reaches this case
-                        break;
-                }
-            }
-
-            ++current_bytes;
-
-            if (is_valid) {
-                create_T();
-            }
-        }
-
-        if (is_end && current_bytes != 0) {
-            create_T();
+        if (storage_ptr + Parser<T>::buffer_bytes_ > Parser<T>::storage_.size()) {
+            Parser<T>::storage_.resize(Parser<T>::storage_.size() * 2);
         }
     }
 
-    return status;
+    if (storage_ptr != 0) {
+        create_T();
+    }
+
+    return false;
 }
 
 template<class T>
@@ -924,6 +893,5 @@ inline bool SamParser<T>::parse(std::vector<std::unique_ptr<T>>& dst,
 
     return status;
 }
-
 
 }
