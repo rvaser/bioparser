@@ -17,7 +17,7 @@
 
 namespace bioparser {
 
-static const std::string version = "v2.1.0";
+static const std::string version = "v2.1.1";
 
 /*!
  * @brief Parser absctract class
@@ -304,7 +304,7 @@ inline bool FastaParser<T>::parse(std::vector<std::unique_ptr<T>>& dst,
             this->buffer_.size());
         is_eof = this->buffer_bytes_ < this->buffer_.size();
 
-        if (storage_ptr + this->buffer_bytes_ >= this->storage_.size()) {
+        if (storage_ptr + this->buffer_bytes_ > this->storage_.size()) {
             this->storage_.resize(this->storage_.size() * 2);
         }
     }
@@ -421,7 +421,7 @@ inline bool FastqParser<T>::parse(std::vector<std::unique_ptr<T>>& dst,
             this->buffer_.size());
         is_eof = this->buffer_bytes_ < this->buffer_.size();
 
-        if (storage_ptr + this->buffer_bytes_ >= this->storage_.size()) {
+        if (storage_ptr + this->buffer_bytes_ > this->storage_.size()) {
             this->storage_.resize(this->storage_.size() * 2);
         }
     }
@@ -435,7 +435,7 @@ inline bool FastqParser<T>::parse(std::vector<std::unique_ptr<T>>& dst,
 
 template<class T>
 inline MhapParser<T>::MhapParser(gzFile input_file)
-        : Parser<T>(input_file, 4096) {
+        : Parser<T>(input_file, 65536) {
 }
 
 template<class T>
@@ -544,7 +544,7 @@ inline bool MhapParser<T>::parse(std::vector<std::unique_ptr<T>>& dst,
             this->buffer_.size());
         is_eof = this->buffer_bytes_ < this->buffer_.size();
 
-        if (storage_ptr + this->buffer_bytes_ >= this->storage_.size()) {
+        if (storage_ptr + this->buffer_bytes_ > this->storage_.size()) {
             this->storage_.resize(this->storage_.size() * 2);
         }
     }
@@ -558,7 +558,7 @@ inline bool MhapParser<T>::parse(std::vector<std::unique_ptr<T>>& dst,
 
 template<class T>
 inline PafParser<T>::PafParser(gzFile input_file)
-        : Parser<T>(input_file, 16384) {
+        : Parser<T>(input_file, 65536) {
 }
 
 template<class T>
@@ -688,7 +688,7 @@ inline bool PafParser<T>::parse(std::vector<std::unique_ptr<T>>& dst,
             this->buffer_.size());
         is_eof = this->buffer_bytes_ < this->buffer_.size();
 
-        if (storage_ptr + this->buffer_bytes_ >= this->storage_.size()) {
+        if (storage_ptr + this->buffer_bytes_ > this->storage_.size()) {
             this->storage_.resize(this->storage_.size() * 2);
         }
     }
@@ -702,7 +702,7 @@ inline bool PafParser<T>::parse(std::vector<std::unique_ptr<T>>& dst,
 
 template<class T>
 inline SamParser<T>::SamParser(gzFile input_file)
-        : Parser<T>(input_file, 16384) {
+        : Parser<T>(input_file, 65536) {
 }
 
 template<class T>
@@ -861,7 +861,7 @@ inline bool SamParser<T>::parse(std::vector<std::unique_ptr<T>>& dst,
             this->buffer_.size());
         is_eof = this->buffer_bytes_ < this->buffer_.size();
 
-        if (storage_ptr + this->buffer_bytes_ >= this->storage_.size()) {
+        if (storage_ptr + this->buffer_bytes_ > this->storage_.size()) {
             this->storage_.resize(this->storage_.size() * 2);
         }
     }
