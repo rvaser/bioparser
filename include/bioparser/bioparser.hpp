@@ -17,7 +17,7 @@
 
 namespace bioparser {
 
-static const std::string version = "v2.1.1";
+static const std::string version = "v2.1.2";
 
 /*!
  * @brief Parser absctract class
@@ -727,6 +727,11 @@ inline bool SamParser<T>::parse(std::vector<std::unique_ptr<T>>& dst,
         quality_length = 0;
 
     auto create_T = [&] () -> void {
+        if (this->storage_[0] == '@') { // header
+            storage_ptr = 0;
+            return;
+        }
+
         this->storage_[storage_ptr] = 0;
         rightStrip(&(this->storage_[0]), storage_ptr);
 
@@ -828,11 +833,6 @@ inline bool SamParser<T>::parse(std::vector<std::unique_ptr<T>>& dst,
         for (; this->buffer_ptr_ < this->buffer_bytes_; ++this->buffer_ptr_) {
             auto c = this->buffer_[this->buffer_ptr_];
             if (c == '\n') {
-                if (this->buffer_[begin_ptr] == '@') {
-                    begin_ptr = this->buffer_ptr_ + 1;
-                    storage_ptr = 0;
-                    continue;
-                }
                 std::memcpy(&this->storage_[storage_ptr],
                     &this->buffer_[begin_ptr],
                     this->buffer_ptr_ - begin_ptr);
