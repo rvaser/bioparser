@@ -39,14 +39,14 @@ class FastqParser: public Parser<T> {
       }
 
       auto name_len = shorten_names ?
-          Parser<T>::Shorten(this->storage().data(), data_ptr) :
-          Parser<T>::RightStrip(this->storage().data(), data_ptr);
+          this->Shorten(this->storage().data(), data_ptr) :
+          this->RightStrip(this->storage().data(), data_ptr);
 
-      auto data_len = Parser<T>::RightStrip(
+      auto data_len = this->RightStrip(
           this->storage().data() + data_ptr,
           comment_ptr - data_ptr);
 
-      auto quality_len = Parser<T>::RightStrip(
+      auto quality_len = this->RightStrip(
           this->storage().data() + quality_ptr,
           this->storage_ptr() - quality_ptr);
 

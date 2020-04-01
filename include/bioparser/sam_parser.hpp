@@ -52,7 +52,7 @@ class SamParser: public Parser<T> {
         this->Clear();
         return;
       }
-      auto storage_ptr = Parser<T>::RightStrip(
+      auto storage_ptr = this->RightStrip(
           this->storage().data(),
           this->storage_ptr());
       this->Terminate(storage_ptr);
@@ -112,21 +112,21 @@ class SamParser: public Parser<T> {
       }
 
       q_name_len = shorten_names ?
-          Parser<T>::Shorten(q_name, q_name_len) :
-          Parser<T>::RightStrip(q_name, q_name_len);
+          this->Shorten(q_name, q_name_len) :
+          this->RightStrip(q_name, q_name_len);
 
       t_name_len = shorten_names ?
-          Parser<T>::Shorten(t_name, t_name_len) :
-          Parser<T>::RightStrip(t_name, t_name_len);
+          this->Shorten(t_name, t_name_len) :
+          this->RightStrip(t_name, t_name_len);
 
-      cigar_len = Parser<T>::RightStrip(cigar, cigar_len);
+      cigar_len = this->RightStrip(cigar, cigar_len);
 
       t_next_name_len = shorten_names ?
-          Parser<T>::Shorten(t_next_name, t_next_name_len) :
-          Parser<T>::RightStrip(t_next_name, t_next_name_len);
+          this->Shorten(t_next_name, t_next_name_len) :
+          this->RightStrip(t_next_name, t_next_name_len);
 
-      data_len = Parser<T>::RightStrip(data, data_len);
-      quality_len = Parser<T>::RightStrip(quality, quality_len);
+      data_len = this->RightStrip(data, data_len);
+      quality_len = this->RightStrip(quality, quality_len);
 
       if (q_name_len == 0 || t_name_len == 0 || cigar_len == 0 ||
           t_next_name_len == 0 || data_len == 0 || quality_len == 0 ||

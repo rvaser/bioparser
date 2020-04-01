@@ -45,7 +45,7 @@ class PafParser: public Parser<T> {
     char orientation = '\0';
 
     auto create_T = [&] () -> void {
-      auto storage_ptr = Parser<T>::RightStrip(
+      auto storage_ptr = this->RightStrip(
           this->storage().data(),
           this->storage_ptr());
       this->Terminate(storage_ptr);
@@ -94,12 +94,12 @@ class PafParser: public Parser<T> {
       }
 
       q_name_len = shorten_names ?
-          Parser<T>::Shorten(q_name, q_name_len) :
-          Parser<T>::RightStrip(q_name, q_name_len);
+          this->Shorten(q_name, q_name_len) :
+          this->RightStrip(q_name, q_name_len);
 
       t_name_len = shorten_names ?
-          Parser<T>::Shorten(t_name, t_name_len) :
-          Parser<T>::RightStrip(t_name, t_name_len);
+          this->Shorten(t_name, t_name_len) :
+          this->RightStrip(t_name, t_name_len);
 
       if (q_name_len == 0 || t_name_len == 0) {
         throw std::invalid_argument(

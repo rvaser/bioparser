@@ -43,7 +43,7 @@ class MhapParser: public Parser<T> {
     std::uint32_t rhs_len = 0;
 
     auto create_T = [&] () -> void {
-      auto storage_ptr = Parser<T>::RightStrip(
+      auto storage_ptr = this->RightStrip(
           this->storage().data(),
           this->storage_ptr());
       this->Terminate(storage_ptr);
