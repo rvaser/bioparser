@@ -1,41 +1,42 @@
-cmake_minimum_required(VERSION 3.2)
-project(bioparser)
+cmake_minimum_required(VERSION 3.9)
 
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
+project(bioparser VERSION 3.0.0
+                  LANGUAGES CXX
+                  DESCRIPTION "Bioparser is a c++ header only parsing library for several formats in bioinformatics (FASTA/Q, MHAP/PAF/SAM), with support for zlib compressed files.")
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic")
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
+
+find_package(ZLIB REQUIRED)
+add_library(${PROJECT_NAME} INTERFACE)
+target_link_libraries(${PROJECT_NAME} INTERFACE ZLIB::ZLIB)
+
+target_include_directories(${PROJECT_NAME}
+  INTERFACE $<BUILD_INTERFACE:${${PROJECT_NAME}_SOURCE_DIR}/include>)
+
 option(bioparser_build_tests "Build bioparser unit tests" OFF)
-
-add_library(bioparser INTERFACE)
-
-target_include_directories(bioparser INTERFACE
-    ${PROJECT_SOURCE_DIR}/include
-    ${PROJECT_SOURCE_DIR}/vendor/zlib
-    ${PROJECT_BINARY_DIR}/vendor/zlib)
-
-if (NOT TARGET zlib)
-    add_subdirectory(vendor/zlib EXCLUDE_FROM_ALL)
-endif()
-
-target_link_libraries(bioparser INTERFACE zlibstatic)
-
 if (bioparser_build_tests)
-    set(bioparser_test_data_path ${PROJECT_SOURCE_DIR}/test/data/)
-    configure_file(${PROJECT_SOURCE_DIR}/test/bioparser_test_config.h.in
-        ${PROJECT_BINARY_DIR}/config/bioparser_test_config.h)
-    include_directories(${PROJECT_BINARY_DIR}/config)
+  set(bioparser_test_data_path ${PROJECT_SOURCE_DIR}/test/data/)
+  configure_file(${PROJECT_SOURCE_DIR}/test/config.h.in
+    ${PROJECT_BINARY_DIR}/test/config.h)
+  include_directories(${PROJECT_BINARY_DIR})
 
-    add_executable(bioparser_test test/bioparser_test.cpp)
-
-    if (NOT TARGET gtest_main)
-        add_subdirectory(vendor/googletest/googletest EXCLUDE_FROM_ALL)
-    endif()
-
-    target_link_libraries(bioparser_test bioparser gtest_main)
-endif()
+  find_package(GTest REQUIRED)
+  if (NOT TARGET biosoup)
+    add_subdirectory(vendor/biosoup EXCLUDE_FROM_ALL)
+  endif ()
+  add_executable(${PROJECT_NAME}_test
+    test/parser_test.cpp
+    test/fasta_parser_test.cpp
+    test/fastq_parser_test.cpp
+    test/mhap_parser_test.cpp
+    test/paf_parser_test.cpp
+    test/sam_parser_test.cpp)
+  target_link_libraries(${PROJECT_NAME}_test ${PROJECT_NAME} biosoup GTest::Main)
+endif ()
