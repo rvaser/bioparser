@@ -15,7 +15,7 @@ endif ()
 target_link_libraries(<your_exe> bioparser)
 ```
 
-If you are not using CMake, include the appropriate header file directly to you project and link with zlib.
+If you are not using CMake, include the appropriate header file directly to your project and link with zlib.
 
 #### Dependencies
 - gcc 4.8+ or clang 3.5+
