@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.9)
 
-project(bioparser VERSION 3.0.2
+project(bioparser VERSION 3.0.3
                   LANGUAGES CXX
                   DESCRIPTION "Bioparser is a c++ header only parsing library for several formats in bioinformatics (FASTA/Q, MHAP/PAF/SAM), with support for zlib compressed files.")
 
@@ -22,11 +22,6 @@ target_include_directories(${PROJECT_NAME}
 
 option(bioparser_build_tests "Build bioparser unit tests" OFF)
 if (bioparser_build_tests)
-  set(bioparser_test_data_path ${PROJECT_SOURCE_DIR}/test/data/)
-  configure_file(${PROJECT_SOURCE_DIR}/test/config.h.in
-    ${PROJECT_BINARY_DIR}/test/config.h)
-  include_directories(${PROJECT_BINARY_DIR})
-
   find_package(GTest REQUIRED)
   if (NOT TARGET biosoup)
     add_subdirectory(vendor/biosoup EXCLUDE_FROM_ALL)
@@ -39,4 +34,6 @@ if (bioparser_build_tests)
     test/paf_parser_test.cpp
     test/sam_parser_test.cpp)
   target_link_libraries(${PROJECT_NAME}_test ${PROJECT_NAME} biosoup GTest::Main)
+  target_compile_definitions(${PROJECT_NAME}_test
+    PRIVATE BIOPARSER_DATA_PATH="${PROJECT_SOURCE_DIR}/test/data/")
 endif ()

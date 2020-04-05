@@ -7,8 +7,6 @@
 #include "biosoup/sequence.hpp"
 #include "gtest/gtest.h"
 
-#include "test/config.h"
-
 std::atomic<std::uint64_t> biosoup::Sequence::num_objects{0};
 
 namespace bioparser {
@@ -17,7 +15,7 @@ namespace test {
 class BioparserFastaTest: public ::testing::Test {
  public:
   void Setup(const std::string& file) {
-    p = Parser<biosoup::Sequence>::Create<FastaParser>(kDataPath + file);
+    p = Parser<biosoup::Sequence>::Create<FastaParser>(BIOPARSER_DATA_PATH + file);  // NOLINT
   }
 
   void Check(bool is_trimmed = true) {

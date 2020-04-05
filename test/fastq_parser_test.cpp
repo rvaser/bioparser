@@ -7,15 +7,13 @@
 #include "biosoup/sequence.hpp"
 #include "gtest/gtest.h"
 
-#include "test/config.h"
-
 namespace bioparser {
 namespace test {
 
 class BioparserFastqTest: public ::testing::Test {
  public:
   void Setup(const std::string& file) {
-    p = Parser<biosoup::Sequence>::Create<FastqParser>(kDataPath + file);
+    p = Parser<biosoup::Sequence>::Create<FastqParser>(BIOPARSER_DATA_PATH + file);  // NOLINT
   }
 
   void Check() {
