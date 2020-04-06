@@ -52,8 +52,8 @@ class BioparserPafTest: public ::testing::Test {
   }
 
   void Check() {
-    EXPECT_EQ(500U, o.size());
-    EXPECT_EQ(96478U, std::accumulate(o.begin(), o.end(), 0,
+    EXPECT_EQ(500, o.size());
+    EXPECT_EQ(96478, std::accumulate(o.begin(), o.end(), 0,
         [] (std::uint32_t s, const std::unique_ptr<PafOverlap>& it) {
           return s + it->q_name.size() + it->t_name.size();
         }));

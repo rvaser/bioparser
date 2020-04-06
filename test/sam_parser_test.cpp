@@ -58,8 +58,8 @@ class BioparserSamTest: public ::testing::Test {
   }
 
   void Check() {
-    EXPECT_EQ(48U, o.size());
-    EXPECT_EQ(795237U, std::accumulate(o.begin(), o.end(), 0,
+    EXPECT_EQ(48, o.size());
+    EXPECT_EQ(795237, std::accumulate(o.begin(), o.end(), 0,
         [] (std::uint32_t s, const std::unique_ptr<SamOverlap>& it) {
           return s +
               it->q_name.size() +
@@ -69,7 +69,7 @@ class BioparserSamTest: public ::testing::Test {
               it->data.size() +
               it->quality.size();
         }));
-    EXPECT_EQ(639677U, std::accumulate(o.begin(), o.end(), 0,
+    EXPECT_EQ(639677, std::accumulate(o.begin(), o.end(), 0,
         [] (std::uint32_t s, const std::unique_ptr<SamOverlap>& it) {
           return s +
               it->flag +

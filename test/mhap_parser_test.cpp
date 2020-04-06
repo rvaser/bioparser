@@ -46,8 +46,8 @@ class BioparserMhapTest: public ::testing::Test {
   }
 
   void Check() {
-    EXPECT_EQ(150U, o.size());
-    EXPECT_EQ(7816946U, std::accumulate(o.begin(), o.end(), 0,
+    EXPECT_EQ(150, o.size());
+    EXPECT_EQ(7816946, std::accumulate(o.begin(), o.end(), 0,
         [] (std::uint32_t s, const std::unique_ptr<MhapOverlap>& it) {
           return s +
               it->lhs_id + it->lhs_begin + it->lhs_end + it->lhs_len +

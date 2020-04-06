@@ -17,16 +17,16 @@ class BioparserFastqTest: public ::testing::Test {
   }
 
   void Check() {
-    EXPECT_EQ(13U, s.size());
-    EXPECT_EQ(17U, std::accumulate(s.begin(), s.end(), 0,
+    EXPECT_EQ(13, s.size());
+    EXPECT_EQ(17, std::accumulate(s.begin(), s.end(), 0,
         [] (std::uint32_t s, const std::unique_ptr<biosoup::Sequence>& it) {
           return s + it->name.size();
         }));
-    EXPECT_EQ(108140U, std::accumulate(s.begin(), s.end(), 0,
+    EXPECT_EQ(108140, std::accumulate(s.begin(), s.end(), 0,
         [] (std::uint32_t s, const std::unique_ptr<biosoup::Sequence>& it) {
           return s + it->data.size();
         }));
-    EXPECT_EQ(108140U, std::accumulate(s.begin(), s.end(), 0,
+    EXPECT_EQ(108140, std::accumulate(s.begin(), s.end(), 0,
         [] (std::uint32_t s, const std::unique_ptr<biosoup::Sequence>& it) {
           return s + it->quality.size();
         }));

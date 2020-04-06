@@ -19,16 +19,16 @@ class BioparserFastaTest: public ::testing::Test {
   }
 
   void Check(bool is_trimmed = true) {
-    EXPECT_EQ(14U, s.size());
-    EXPECT_EQ(65U + !is_trimmed * 10, std::accumulate(s.begin(), s.end(), 0,
+    EXPECT_EQ(14, s.size());
+    EXPECT_EQ(65 + !is_trimmed * 10, std::accumulate(s.begin(), s.end(), 0,
         [] (std::uint32_t s, const std::unique_ptr<biosoup::Sequence>& it) {
           return s + it->name.size();
         }));
-    EXPECT_EQ(109117U, std::accumulate(s.begin(), s.end(), 0,
+    EXPECT_EQ(109117, std::accumulate(s.begin(), s.end(), 0,
         [] (std::uint32_t s, const std::unique_ptr<biosoup::Sequence>& it) {
           return s + it->data.size();
         }));
-    EXPECT_EQ(0U, std::accumulate(s.begin(), s.end(), 0,
+    EXPECT_EQ(0, std::accumulate(s.begin(), s.end(), 0,
         [] (std::uint32_t s, const std::unique_ptr<biosoup::Sequence>& it) {
           return s + it->quality.size();
         }));
