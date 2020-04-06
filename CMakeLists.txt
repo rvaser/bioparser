@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.9)
 
-project(bioparser VERSION 3.0.3
+project(bioparser VERSION 3.0.4
                   LANGUAGES CXX
                   DESCRIPTION "Bioparser is a c++ header only parsing library for several formats in bioinformatics (FASTA/Q, MHAP/PAF/SAM), with support for zlib compressed files.")
 
