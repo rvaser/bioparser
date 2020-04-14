@@ -27,9 +27,10 @@ struct MhapOverlap: public biosoup::Overlap {
       std::uint32_t rhs_end,
       std::uint32_t rhs_len)
       : biosoup::Overlap(
-          (lhs_id << 1) | (lhs_strand == rhs_strand), lhs_begin, lhs_end,
+          lhs_id, lhs_begin, lhs_end,
           rhs_id, rhs_begin, rhs_end,
-          num_minmers),
+          num_minmers,
+          lhs_strand == rhs_strand),
         error(error * 10000),
         lhs_len(lhs_len),
         rhs_len(rhs_len) {}
@@ -47,12 +48,13 @@ class BioparserMhapTest: public ::testing::Test {
 
   void Check() {
     EXPECT_EQ(150, o.size());
-    EXPECT_EQ(7816946, std::accumulate(o.begin(), o.end(), 0,
+    EXPECT_EQ(7816660, std::accumulate(o.begin(), o.end(), 0,
         [] (std::uint32_t s, const std::unique_ptr<MhapOverlap>& it) {
           return s +
               it->lhs_id + it->lhs_begin + it->lhs_end + it->lhs_len +
               it->rhs_id + it->rhs_begin + it->rhs_end + it->rhs_len +
               it->score +
+              it->strand +
               it->error;
         }));
   }

@@ -27,9 +27,10 @@ struct PafOverlap: public biosoup::Overlap {
       std::uint32_t overlap_len,
       std::uint32_t quality)
       : biosoup::Overlap(
-          0 | (orientation == '+'), q_begin, q_end,
+          0, q_begin, q_end,
           0, t_begin, t_end,
-          score),
+          score,
+          orientation == '+'),
         q_name(q_name, q_name_len),
         q_len(q_len),
         t_name(t_name, t_name_len),
@@ -63,6 +64,7 @@ class BioparserPafTest: public ::testing::Test {
               it->lhs_id + it->lhs_begin + it->lhs_end + it->q_len +
               it->rhs_id + it->rhs_begin + it->rhs_end + it->t_len +
               it->score +
+              it->strand +
               it->overlap_len +
               it->quality;
         }));
