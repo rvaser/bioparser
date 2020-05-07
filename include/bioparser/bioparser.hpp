@@ -18,7 +18,7 @@
 
 namespace bioparser {
 
-static const std::string version = "v2.1.2";
+static const std::string version = "v2.1.3";
 
 /*!
  * @brief Parser absctract class
