@@ -1,7 +1,7 @@
 # Bioparser
 
 [![Latest GitHub release](https://img.shields.io/github/release/rvaser/bioparser.svg)](https://github.com/rvaser/bioparser/releases/latest)
-[![Build status for gcc/clang](https://travis-ci.org/rvaser/bioparser.svg?branch=master)](https://travis-ci.org/rvaser/bioparser)
+[![Build status for gcc/clang](https://travis-ci.com/rvaser/bioparser.svg?branch=master)](https://travis-ci.com/rvaser/bioparser)
 
 Bioparser is a c++ header only parsing library for several formats in bioinformatics (FASTA/Q, MHAP/PAF/SAM), with support for zlib compressed files.
 
