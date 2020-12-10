@@ -40,15 +40,11 @@ class FastqParser: public Parser<T> {
 
       auto name_len = shorten_names ?
           this->Shorten(this->storage().data(), data_ptr) :
-          this->RightStrip(this->storage().data(), data_ptr);
+          data_ptr;
 
-      auto data_len = this->RightStrip(
-          this->storage().data() + data_ptr,
-          comment_ptr - data_ptr);
+      auto data_len = comment_ptr - data_ptr;
 
-      auto quality_len = this->RightStrip(
-          this->storage().data() + quality_ptr,
-          this->storage_ptr() - quality_ptr);
+      auto quality_len = this->storage_ptr() - quality_ptr;
 
       if (name_len == 0 || this->storage()[0] != '@' || data_len == 0 ||
           quality_len == 0 || data_len != quality_len) {
@@ -79,7 +75,7 @@ class FastqParser: public Parser<T> {
       for (; buffer_ptr < this->buffer_bytes(); ++buffer_ptr) {
         auto c = this->buffer()[buffer_ptr];
         if (c == '\n') {
-          this->Store(buffer_ptr - this->buffer_ptr());
+          this->Store(buffer_ptr - this->buffer_ptr(), true);
           if (is_name) {
             is_name = false;
             is_data = true;
@@ -104,7 +100,7 @@ class FastqParser: public Parser<T> {
         }
       }
       if (this->buffer_ptr() < buffer_ptr) {
-        this->Store(buffer_ptr - this->buffer_ptr());
+        this->Store(buffer_ptr - this->buffer_ptr(), true);
       }
 
       if (is_eof) {

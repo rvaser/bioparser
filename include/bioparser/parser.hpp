@@ -82,7 +82,7 @@ class Parser {  // Parser factory
     return buffer_bytes_ < buffer_.size();
   }
 
-  void Store(std::uint32_t count) {
+  void Store(std::uint32_t count, bool strip = false) {
     if (buffer_ptr_ + count > buffer_.size()) {
       throw std::invalid_argument(
           "[bioparser::Parser::Store] error: buffer overflow");
@@ -91,7 +91,7 @@ class Parser {  // Parser factory
       storage_.resize(2 * storage_.size());
     }
     std::memcpy(&storage_[storage_ptr_], &buffer_[buffer_ptr_], count);
-    storage_ptr_ += count;
+    storage_ptr_ += strip ? RightStrip(&storage_[storage_ptr_], count) : count;
     buffer_ptr_ += count + 1;  // ignore sought character
   }
 
