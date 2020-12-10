@@ -38,7 +38,7 @@ class FastaParser: public Parser<T> {
 
       auto name_len = shorten_names ?
           this->Shorten(this->storage().data(), data_ptr) :
-          data_ptr;
+          this->RightStrip(this->storage().data(), data_ptr);
 
       auto data_len = this->storage_ptr() - data_ptr;
 
@@ -64,7 +64,7 @@ class FastaParser: public Parser<T> {
       for (; buffer_ptr < this->buffer_bytes(); ++buffer_ptr) {
         auto c = this->buffer()[buffer_ptr];
         if (c == '\n') {
-          this->Store(buffer_ptr - this->buffer_ptr(), true);
+          this->Store(buffer_ptr - this->buffer_ptr(), !is_name);
           if (is_name) {
             data_ptr = this->storage_ptr();
             is_name = false;
@@ -78,7 +78,7 @@ class FastaParser: public Parser<T> {
         }
       }
       if (this->buffer_ptr() < buffer_ptr) {
-        this->Store(buffer_ptr - this->buffer_ptr(), true);
+        this->Store(buffer_ptr - this->buffer_ptr(), !is_name);
       }
 
       if (is_eof) {
