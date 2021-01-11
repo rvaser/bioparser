@@ -47,6 +47,10 @@ class Parser {  // Parser factory
     buffer_bytes_ = 0;
   }
 
+  bool Eof() {
+    return gzeof(file_.get());
+  }
+
  protected:
   Parser(gzFile file, std::uint32_t storage_size)
       : file_(file, gzclose),
