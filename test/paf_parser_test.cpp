@@ -49,7 +49,7 @@ struct PafOverlap: public biosoup::Overlap {
 class BioparserPafTest: public ::testing::Test {
  public:
   void Setup(const std::string& file) {
-    p = Parser<PafOverlap>::Create<PafParser>(BIOPARSER_DATA_PATH + file);
+    p = Parser<PafOverlap>::Create<PafParser>(TEST_DATA + file);
   }
 
   void Check() {

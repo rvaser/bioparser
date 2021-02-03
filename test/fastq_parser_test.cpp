@@ -13,7 +13,7 @@ namespace test {
 class BioparserFastqTest: public ::testing::Test {
  public:
   void Setup(const std::string& file) {
-    p = Parser<biosoup::Sequence>::Create<FastqParser>(BIOPARSER_DATA_PATH + file);  // NOLINT
+    p = Parser<biosoup::Sequence>::Create<FastqParser>(TEST_DATA + file);
   }
 
   void Check() {

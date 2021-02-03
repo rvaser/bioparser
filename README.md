@@ -3,28 +3,47 @@
 [![Latest GitHub release](https://img.shields.io/github/release/rvaser/bioparser.svg)](https://github.com/rvaser/bioparser/releases/latest)
 [![Build status for gcc/clang](https://travis-ci.com/rvaser/bioparser.svg?branch=master)](https://travis-ci.com/rvaser/bioparser)
 
-Bioparser is a c++ header only parsing library for several formats in bioinformatics (FASTA/Q, MHAP/PAF/SAM), with support for zlib compressed files.
+Bioparser is a c++ header only parsing library for several bioinformatics formats (FASTA/Q, MHAP/PAF/SAM), with support for zlib compressed files.
 
 ## Usage
 
-If you would like to add bioparser to your project via CMake, add the following:
+To build bioparser run the following commands:
+```bash
+git clone https://github.com/rvaser/bioparser && cd bioparser && mkdir build && cd build
+cmake -DCMAKE_BUILD_TYPE=Release .. && make
+```
+which will create install targets and unit tests. Running `make install` will create a package on your system that can be searched and linked with:
+```cmake
+find_package(bioparser)
+target_link_libraries(<target> bioparser::bioparser)
+```
+On the other hand, you can include bioparser as a submodule and add it to your project with the following:
 ```cmake
 if (NOT TARGET bioparser)
   add_subdirectory(<path_to_submodules>/bioparser EXCLUDE_FROM_ALL)
 endif ()
-target_link_libraries(<your_exe> bioparser)
+target_link_libraries(<target> bioparser::bioparser)
 ```
 
 If you are not using CMake, include the appropriate header file directly to your project and link with zlib.
 
+#### Build options
+
+- `bioparser_install`: generate install target
+- `bioparser_build_tests`: build unit tests
+
 #### Dependencies
-- gcc 4.8+ or clang 3.5+
-- (optional) cmake 3.9+
-- zlib
+- gcc 4.8+ | clang 3.5+
+- zlib 1.2.11
+- (optional) cmake 3.11+
+
+###### Hidden
+- (bioparser_test) biosoup 0.10.0
+- (bioparser_test) googletest 1.10.0
 
 ## Examples
 
-### FASTA parser
+#### FASTA parser
 
 ```cpp
 #include "bioparser/fasta_parser.hpp"
@@ -43,7 +62,7 @@ auto p = bioparser::Parser<Sequence>::Create<bioparser::FastaParser>(path);
 auto s = p->Parse(-1);
 ```
 
-### FASTQ parser
+#### FASTQ parser
 
 ```cpp
 #include "bioparser/fastq_parser.hpp"
@@ -61,16 +80,19 @@ auto p = bioparser::Parser<Sequence>::Create<bioparser::FastqParser>(path);
 
 // parse in chunks
 std::vector<std::unique_ptr<Sequence>> s;
-std::uint32_t chunk_size = 500 * 1024 * 1024;  // 500 MB
-for (auto t = p->parse(chunk_size); !t.empty(); t = p->parse(chunk_size)) {
+while (true) {
+  auto c = p->Parse(1ULL << 30);  // 1 GB
+  if (c.empty()) {
+    break;
+  }
   s.insert(
       s.end(),
-      std::make_move_iterator(t.begin()),
-      std::make_move_iterator(t.end()));
+      std::make_move_iterator(c.begin()),
+      std::make_move_iterator(c.begin()));
 }
 ```
 
-### MHAP parser
+#### MHAP parser
 
 ```cpp
 #include "bioparser/mhap_parser.hpp"
@@ -99,7 +121,7 @@ auto p = bioparser::Parser<Overlap>::Create<bioparser::MhapParser>(path);
 auto o = p->Parse(-1);
 ```
 
-### PAF parser
+#### PAF parser
 
 ```cpp
 #include "bioparser/paf_parser.hpp"
@@ -128,7 +150,7 @@ auto p = bioparser::Parser<Overlap>::Create<bioparser::PafParser>(path);
 auto o = p->Parse(-1);
 ```
 
-### SAM parser
+#### SAM parser
 
 ```cpp
 #include "bioparser/sam_parser.hpp"
@@ -165,20 +187,6 @@ friend bioparser::MhapParser<Overlap>;
 friend bioparser::PafParser<Overlap>;
 friend bioparser::SamParser<Overlap>;
 ```
-
-## Unit tests
-
-To build and run bioparser unit tests run the following commands:
-
-```bash
-git clone --recursive https://github.com/rvaser/bioparser.git bioparser
-cd bioparser && mkdir build && cd build
-cmake -Dbioparser_build_tests=ON -DCMAKE_BUILD_TYPE=Release .. && make
-./bin/bioparser_test
-```
-
-#### Dependencies
-- gtest
 
 ## Acknowledgement
 

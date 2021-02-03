@@ -54,7 +54,7 @@ struct SamOverlap: public biosoup::Overlap {
 class BioparserSamTest: public ::testing::Test {
  public:
   void Setup(const std::string& file) {
-    p = Parser<SamOverlap>::Create<SamParser>(BIOPARSER_DATA_PATH + file);
+    p = Parser<SamOverlap>::Create<SamParser>(TEST_DATA + file);
   }
 
   void Check() {

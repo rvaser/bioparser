@@ -15,7 +15,7 @@ namespace test {
 class BioparserFastaTest: public ::testing::Test {
  public:
   void Setup(const std::string& file) {
-    p = Parser<biosoup::Sequence>::Create<FastaParser>(BIOPARSER_DATA_PATH + file);  // NOLINT
+    p = Parser<biosoup::Sequence>::Create<FastaParser>(TEST_DATA + file);
   }
 
   void Check(bool is_trimmed = true) {
