@@ -34,7 +34,7 @@ If you are not using CMake, include the appropriate header file directly to your
 
 #### Dependencies
 - gcc 4.8+ | clang 3.5+
-- zlib 1.2.11
+- zlib 1.2.8+
 - (optional) cmake 3.11+
 
 ###### Hidden
@@ -88,7 +88,7 @@ while (true) {
   s.insert(
       s.end(),
       std::make_move_iterator(c.begin()),
-      std::make_move_iterator(c.begin()));
+      std::make_move_iterator(c.end()));
 }
 ```
 
