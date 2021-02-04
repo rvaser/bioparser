@@ -4,10 +4,6 @@ project(bioparser VERSION 3.0.13
                   LANGUAGES CXX
                   DESCRIPTION "Bioparser is a c++ header only parsing library for several formats in bioinformatics (FASTA/Q, MHAP/PAF/SAM), with support for zlib compressed files.")
 
-if (CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
-  set(bioparser_main_project ON)
-endif ()
-
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic")
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -17,7 +13,55 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
 
+if (CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
+  set(bioparser_main_project ON)
+endif ()
+option(bioparser_install "Generate install target" ${bioparser_main_project})
+option(bioparser_build_tests "Build unit tests" ${bioparser_main_project})
+
 find_package(ZLIB 1.2.8 REQUIRED)
+
+if (bioparser_build_tests)
+  find_package(biosoup 0.10.0 QUIET)
+  find_package(GTest 1.10.0 QUIET)
+
+  if (NOT biosoup_FOUND)
+    include(FetchContent)
+
+    FetchContent_Declare(
+      biosoup
+      GIT_REPOSITORY https://github.com/rvaser/biosoup
+      GIT_TAG 0.10.0)
+
+    FetchContent_GetProperties(biosoup)
+    if (NOT biosoup_POPULATED)
+      FetchContent_Populate(biosoup)
+      add_subdirectory(
+        ${biosoup_SOURCE_DIR}
+        ${biosoup_BINARY_DIR}
+        EXCLUDE_FROM_ALL)
+    endif ()
+  endif ()
+
+  if (NOT GTest_FOUND)
+    include(FetchContent)
+
+    FetchContent_Declare(
+      googletest
+      GIT_REPOSITORY https://github.com/google/googletest
+      GIT_TAG release-1.10.0)
+
+    FetchContent_GetProperties(googletest)
+    if (NOT googletest_POPULATED)
+      FetchContent_Populate(googletest)
+      add_subdirectory(
+        ${googletest_SOURCE_DIR}
+        ${googletest_BINARY_DIR}
+        EXCLUDE_FROM_ALL)
+      add_library(GTest::Main ALIAS gtest_main)
+    endif ()
+  endif ()
+endif ()
 
 add_library(bioparser INTERFACE)
 add_library(${PROJECT_NAME}::bioparser ALIAS bioparser)
@@ -29,7 +73,6 @@ target_include_directories(bioparser INTERFACE
 target_link_libraries(bioparser INTERFACE
   ZLIB::ZLIB)
 
-option(bioparser_install "Generate install target" ${bioparser_main_project})
 if (bioparser_install)
   include(GNUInstallDirs)
   include(CMakePackageConfigHelpers)
@@ -58,46 +101,7 @@ if (bioparser_install)
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
 endif ()
 
-option(bioparser_build_tests "Build unit tests" ${bioparser_main_project})
 if (bioparser_build_tests)
-  find_package(biosoup 0.10.0 QUIET)
-  if (NOT biosoup_FOUND)
-    include(FetchContent)
-
-    FetchContent_Declare(
-      biosoup
-      GIT_REPOSITORY https://github.com/rvaser/biosoup)
-
-    FetchContent_GetProperties(biosoup)
-    if (NOT biosoup_POPULATED)
-      FetchContent_Populate(biosoup)
-      add_subdirectory(
-        ${biosoup_SOURCE_DIR}
-        ${biosoup_BINARY_DIR}
-        EXCLUDE_FROM_ALL)
-    endif ()
-  endif ()
-
-  find_package(GTest 1.10.0 QUIET)
-  if (NOT GTest_FOUND)
-    include(FetchContent)
-
-    FetchContent_Declare(
-      googletest
-      GIT_REPOSITORY https://github.com/google/googletest
-      GIT_TAG release-1.10.0)
-
-    FetchContent_GetProperties(googletest)
-    if (NOT googletest_POPULATED)
-      FetchContent_Populate(googletest)
-      add_subdirectory(
-        ${googletest_SOURCE_DIR}
-        ${googletest_BINARY_DIR}
-        EXCLUDE_FROM_ALL)
-      add_library(GTest::Main ALIAS gtest_main)
-    endif ()
-  endif ()
-
   add_executable(bioparser_test
     test/parser_test.cpp
     test/fasta_parser_test.cpp
@@ -105,10 +109,12 @@ if (bioparser_build_tests)
     test/mhap_parser_test.cpp
     test/paf_parser_test.cpp
     test/sam_parser_test.cpp)
+
   target_link_libraries(bioparser_test
     bioparser
     biosoup::biosoup
     GTest::Main)
-  target_compile_definitions(bioparser_test PRIVATE
-    TEST_DATA="${PROJECT_SOURCE_DIR}/test/data/")
+
+  target_compile_definitions(bioparser_test
+    PRIVATE TEST_DATA="${PROJECT_SOURCE_DIR}/test/data/")
 endif ()
