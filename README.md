@@ -38,8 +38,8 @@ If you are not using CMake, include the appropriate header file directly to your
 - (optional) cmake 3.11+
 
 ###### Hidden
-- (bioparser_test) biosoup 0.10.0
-- (bioparser_test) googletest 1.10.0
+- (bioparser_test) rvaser/biosoup 0.10.0
+- (bioparser_test) google/googletest 1.10.0
 
 ## Examples
 
