@@ -85,7 +85,7 @@ class FastqParser: public Parser<T> {
             is_quality = true;
             quality_ptr = this->storage_ptr();
           } else if (is_quality &&
-                this->storage_ptr() - quality_ptr == comment_ptr - data_ptr) {
+                this->storage_ptr() - quality_ptr >= comment_ptr - data_ptr) {
             is_quality = false;
             is_name = true;
             create_T();

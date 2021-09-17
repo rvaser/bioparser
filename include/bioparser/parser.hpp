@@ -7,6 +7,7 @@
 #include <cctype>
 #include <cstdint>
 #include <cstring>
+#include <limits>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -82,10 +83,14 @@ class Parser {  // Parser factory
     return buffer_bytes_ < buffer_.size();
   }
 
-  void Store(std::uint32_t count, bool strip = false) {
+  void Store(std::size_t count, bool strip = false) {
     if (buffer_ptr_ + count > buffer_.size()) {
       throw std::invalid_argument(
           "[bioparser::Parser::Store] error: buffer overflow");
+    }
+    if (storage_ptr_ + count > std::numeric_limits<std::uint32_t>::max()) {
+      throw std::invalid_argument(
+          "[bioparser::Parser::Store] error: storage overflow");
     }
     if (storage_ptr_ + count > storage_.size()) {
       storage_.resize(2 * storage_.size());
