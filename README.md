@@ -5,41 +5,42 @@
 
 Bioparser is a c++ header only parsing library for several bioinformatics formats (FASTA/Q, MHAP/PAF/SAM), with support for zlib compressed files.
 
-## Usage
+## Build
 
-To build bioparser run the following commands:
+### Dependencies
+
+- gcc 4.8+ | clang 3.5+
+- zlib 1.2.8+
+
+#### Hidden
+
+- (bioparser_test) rvaser/biosoup 0.11.0
+- (bioparser_test) google/googletest 1.10.0
+
+### CMake (3.11+)
+
 ```bash
-git clone https://github.com/rvaser/bioparser && cd bioparser && mkdir build && cd build
-cmake -DCMAKE_BUILD_TYPE=Release .. && make
-```
-which will create install targets and unit tests. Running `make install` will create a package on your system that can be searched and linked with:
-```cmake
-find_package(bioparser)
-target_link_libraries(<target> bioparser::bioparser)
-```
-On the other hand, you can include bioparser as a submodule and add it to your project with the following:
-```cmake
-if (NOT TARGET bioparser)
-  add_subdirectory(<path_to_submodules>/bioparser EXCLUDE_FROM_ALL)
-endif ()
-target_link_libraries(<target> bioparser::bioparser)
+git clone https://github.com/rvaser/bioparser && cd bioparser
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+make -C build
 ```
 
-If you are not using CMake, include the appropriate header file directly to your project and link with zlib.
-
-#### Build options
+#### Options
 
 - `bioparser_install`: generate install target
 - `bioparser_build_tests`: build unit tests
 
-#### Dependencies
-- gcc 4.8+ | clang 3.5+
-- zlib 1.2.8+
-- (optional) cmake 3.11+
+### Meson (0.60.0+)
 
-###### Hidden
-- (bioparser_test) rvaser/biosoup 0.10.0
-- (bioparser_test) google/googletest 1.10.0
+```bash
+git clone https://github.com/rvaser/bioparser && cd bioparser
+meson setup build
+ninja -C build
+```
+
+#### Options
+
+- `tests`: build unit tests
 
 ## Examples
 

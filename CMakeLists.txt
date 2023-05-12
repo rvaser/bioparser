@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.11)
 
-project(bioparser VERSION 3.0.15
+project(bioparser VERSION 3.1.0
                   LANGUAGES CXX
                   DESCRIPTION "Bioparser is a c++ header only parsing library for several formats in bioinformatics (FASTA/Q, MHAP/PAF/SAM), with support for zlib compressed files.")
 
@@ -22,7 +22,7 @@ option(bioparser_build_tests "Build unit tests" ${bioparser_main_project})
 find_package(ZLIB 1.2.8 REQUIRED)
 
 if (bioparser_build_tests)
-  find_package(biosoup 0.10.0 QUIET)
+  find_package(biosoup 0.11.0 QUIET)
   find_package(GTest 1.10.0 QUIET)
 
   if (NOT biosoup_FOUND)
@@ -31,7 +31,7 @@ if (bioparser_build_tests)
     FetchContent_Declare(
       biosoup
       GIT_REPOSITORY https://github.com/rvaser/biosoup
-      GIT_TAG 0.10.0)
+      GIT_TAG 0.11.0)
 
     FetchContent_GetProperties(biosoup)
     if (NOT biosoup_POPULATED)

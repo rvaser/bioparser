@@ -52,6 +52,15 @@ jobs:
         env:
           CXX: ${{ matrix.compiler }}
 
+      - name: Configure Meson
+        uses: BSFishy/meson-build@v1.0.3
+        with:
+          action: build
+          directory: build_meson
+          meson-version: 0.60.0
+
       - name: Test
         working-directory: ${{ github.workspace }}
-        run: build_cmake/bin/bioparser_test
+        run: |
+          build_cmake/bin/bioparser_test
+          build_meson/test/bioparser_test
