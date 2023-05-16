@@ -1,0 +1,14 @@
+// Copyright (c) 2023 Robert Vaser
+
+#ifndef BIOPARSER_TEST_CONFIG_H_
+#define BIOPARSER_TEST_CONFIG_H_
+
+namespace bioparser {
+namespace test {
+
+constexpr char BIOPARSER_TEST_DATA[] = "@BIOPARSER_TEST_DATA@";
+
+}  // namespace test
+}  // namespace bioparser
+
+#endif  // BIOPARSER_TEST_CONFIG_H_

@@ -8,6 +8,8 @@
 #include "biosoup/overlap.hpp"
 #include "gtest/gtest.h"
 
+#include "bioparser_test_config.h"
+
 namespace bioparser {
 namespace test {
 
@@ -49,7 +51,7 @@ struct PafOverlap: public biosoup::Overlap {
 class BioparserPafTest: public ::testing::Test {
  public:
   void Setup(const std::string& file) {
-    p = Parser<PafOverlap>::Create<PafParser>(TEST_DATA + file);
+    p = Parser<PafOverlap>::Create<PafParser>(BIOPARSER_TEST_DATA + file);
   }
 
   void Check() {

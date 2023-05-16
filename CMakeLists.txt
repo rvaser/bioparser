@@ -102,6 +102,9 @@ if (bioparser_install)
 endif ()
 
 if (bioparser_build_tests)
+  set(BIOPARSER_TEST_DATA "${PROJECT_SOURCE_DIR}/test/data/")
+  configure_file(test/bioparser_test_config.h.in bioparser_test_config.h)
+
   add_executable(bioparser_test
     test/parser_test.cpp
     test/fasta_parser_test.cpp
@@ -115,6 +118,6 @@ if (bioparser_build_tests)
     biosoup::biosoup
     GTest::Main)
 
-  target_compile_definitions(bioparser_test
-    PRIVATE TEST_DATA="${PROJECT_SOURCE_DIR}/test/data/")
+  target_include_directories(bioparser_test PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>)
 endif ()
